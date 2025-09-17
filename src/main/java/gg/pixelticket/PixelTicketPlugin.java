@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     public enum TicketType {
-        LEG_RANDOM("전설랜덤소환권", ChatColor.LIGHT_PURPLE + "전설 랜덤 1종 지급", "LEG_RANDOM"),
+        LEG_RANDOM("전설랜덤권", ChatColor.LIGHT_PURPLE + "전설 랜덤 1종 지급", "LEG_RANDOM"),
         LEG_SELECT("전설선택권", ChatColor.AQUA + "GUI에서 전설 선택 지급", "LEG_SELECT"),
         SHINY("이로치권", ChatColor.YELLOW + "채팅에 슬롯(1-6) 입력 → 이로치 변경", "SHINY"),
         BIGGEST("가장큼권", ChatColor.GREEN + "채팅에 슬롯 입력 → 크기 Ginormous", "BIGGEST"),
@@ -120,7 +120,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
 
     private void help(CommandSender s){
         s.sendMessage(color("&b/지급 <권종류> <플레이어> <갯수>"));
-        s.sendMessage(color("&7권종류: &f전설랜덤소환권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권"));
+        s.sendMessage(color("&7권종류: &f전설랜덤권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권"));
         s.sendMessage(color("&b/지급 설정 <권종류> &7- 손에 든 아이템을 해당 권으로 태그"));
     }
 
@@ -134,9 +134,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     private ItemStack createTicket(TicketType t, int amount) {
         ItemStack it = new ItemStack(Material.PAPER);
         ItemMeta m = it.getItemMeta();
-        m.setDisplayName(color("&d[권] &f")+t.displayName);
+        m.setDisplayName(color("&6[ &e소모권 &6] &f")+t.displayName);
         List<String> lore = new ArrayList<>();
-        lore.add(color("&5&lPixelTicket Coupon"));
+        lore.add(color("&7픽셀몬 소모권"));
         lore.add(color("&7") + t.lore1);
         lore.add(color("&8우클릭 사용 · 채팅 안내에 따르세요"));
         m.setLore(lore);
@@ -152,9 +152,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
 
     private void markAsTicket(ItemStack it, TicketType t) {
         ItemMeta m = it.getItemMeta();
-        m.setDisplayName(color("&d[권] &f")+t.displayName);
+        m.setDisplayName(color("&d&6[ &e소모권 &6] &f")+t.displayName);
         List<String> lore = new ArrayList<>();
-        lore.add(color("&5&lPixelTicket Coupon"));
+        lore.add(color("&7픽셀몬 소모권"));
         lore.add(color("&7") + t.lore1);
         lore.add(color("&8우클릭 사용 · 채팅 안내에 따르세요"));
         m.setLore(lore);
@@ -198,7 +198,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         switch (type){
             case LEG_RANDOM:
                 runConsole("pokegive "+p.getName()+" random legendary");
-                p.sendMessage(color("&d[권 사용] &f전설 랜덤 1종을 지급합니다."));
+                p.sendMessage(color("&d[소모권 사용] &f전설 랜덤 1종을 지급합니다."));
                 consumeOne(p);
                 break;
             case LEG_SELECT:
