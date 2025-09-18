@@ -1,8 +1,0 @@
-# PocketPhoto v1.2.3
-language: "ko"
-use-map-sprite: true      # true면 Filled Map에 '픽셀몬 스프라이트'를 렌더, false면 종이(PAPER) 사용
-map-scale: 2              # 0~4 (지도 스케일)
-pokegive-slot-key: "s"    # 폴백 pokegive 슬롯키 (서버에 따라 "slot" 필요할 수 있음)
-
-photo-title-format: "§e[ 포켓 사진 ] §f%species% §7Lv %level%"
-rich-lore: true
