@@ -1,8 +1,0 @@
-# PocketPhoto v1.2.4
-language: "ko"
-use-map-sprite: true      # true: 픽셀몬 스프라이트가 그려진 '지도'로 표시, false: 종이 아이템
-map-scale: 2              # 0~4 (지도 스케일)
-pokegive-slot-key: "s"    # 폴백 pokegive 슬롯 키워드 (서버에 따라 "slot"일 수도 있음)
-
-photo-title-format: "§e[ 포켓 사진 ] §f%species% §7Lv %level%"
-rich-lore: true
