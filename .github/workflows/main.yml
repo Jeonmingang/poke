@@ -1,22 +1,54 @@
 name: Build (Java 8 / Spigot 1.16.5)
+
 on:
-  push: { branches: [ main, master ] }
-  pull_request: { branches: [ main, master ] }
+  push:
+    branches: [ main, master ]
+    tags: [ "v*", "release-*" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 8
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8 (Temurin) with Maven cache
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '8'
           cache: maven
-      - name: Build with Maven
-        run: mvn -B -DskipTests package
-      - name: Upload JAR
+
+      - name: Print Maven / Java versions
+        run: |
+          java -version
+          mvn -v
+
+      - name: Resolve Project Version
+        id: ver
+        shell: bash
+        run: echo "VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)" >> $GITHUB_ENV
+
+      - name: Build (no tests)
+        run: mvn -B -e -DskipTests package
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          # 결과 JAR 복사 및 보기 좋은 이름으로 재배치
+          cp target/*.jar "dist/UltimatePokeItemizer-${VERSION}.jar"
+          ls -al dist
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PocketPhoto-jar
-          path: target/*.jar
+          name: UltimatePokeItemizer-${{ env.VERSION }}
+          path: dist/*.jar
+          retention-days: 14
