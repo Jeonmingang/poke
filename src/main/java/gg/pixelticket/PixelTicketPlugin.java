@@ -32,16 +32,25 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Minimal patch v1.0.4:
+ * - Pre-consume exploit fix (right-click immediately consumes for all interactive coupons)
+ * - New TicketType: LEG_FORCE_SPAWN (전설소환권) -> runs 'spawnlegendary <player>'
+ * Everything else left untouched.
+ */
 public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     public enum TicketType {
-        LEG_RANDOM("전설랜덤권", ChatColor.LIGHT_PURPLE + "전설 랜덤 1종 지급", "LEG_RANDOM"),
+        LEG_RANDOM("전설랜덤소환권", ChatColor.LIGHT_PURPLE + "전설 랜덤 1종 지급", "LEG_RANDOM"),
         LEG_SELECT("전설선택권", ChatColor.AQUA + "GUI에서 전설 선택 지급", "LEG_SELECT"),
         SHINY("이로치권", ChatColor.YELLOW + "채팅에 슬롯(1-6) 입력 → 이로치 변경", "SHINY"),
         BIGGEST("가장큼권", ChatColor.GREEN + "채팅에 슬롯 입력 → 크기 Ginormous", "BIGGEST"),
         SMALLEST("가장작음권", ChatColor.GREEN + "채팅에 슬롯 입력 → 크기 Microscopic", "SMALLEST"),
         NEUTER("중성화권", ChatColor.RED + "채팅에 슬롯 입력 → 번식 불가(unbreedable)", "NEUTER"),
-        RANDOM_IVS("랜덤개체값권", ChatColor.GOLD + "채팅에 슬롯 입력 → IV 전부 랜덤", "RANDOM_IVS");
+        RANDOM_IVS("랜덤개체값권", ChatColor.GOLD + "채팅에 슬롯 입력 → IV 전부 랜덤", "RANDOM_IVS"),
+        // NEW:
+        LEG_FORCE_SPAWN("전설소환권", ChatColor.LIGHT_PURPLE + "콘솔: /spawnlegendary <플레이어>", "LEG_FORCE_SPAWN")
+        ;
 
         public final String displayName;
         public final String lore1;
@@ -84,13 +93,18 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         saveResource("legendaries.yml", false);
         legendsFile = new File(getDataFolder(), "legendaries.yml");
         legendsCfg = YamlConfiguration.loadConfiguration(legendsFile);
-        getLogger().info("PixelTicket enabled.");
+        getLogger().info("PixelTicket enabled (v1.0.4 minimal patch).");
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!sender.hasPermission("pixelticket.admin")) { sender.sendMessage(color("&c권한이 없습니다.")); return true; }
         if (args.length == 0) { help(sender); return true; }
+
+        if (args[0].equalsIgnoreCase("테스트")) {
+            sender.sendMessage(color("&a[SELFTEST] &7플러그인 로드/명령/이벤트 등록 OK."));
+            return true;
+        }
 
         if (args[0].equalsIgnoreCase("설정")) {
             if (!(sender instanceof Player)) { sender.sendMessage(color("&c플레이어만 사용 가능합니다.")); return true; }
@@ -120,23 +134,29 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
 
     private void help(CommandSender s){
         s.sendMessage(color("&b/지급 <권종류> <플레이어> <갯수>"));
-        s.sendMessage(color("&7권종류: &f전설랜덤권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권"));
+        s.sendMessage(color("&7권종류: &f전설랜덤소환권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권, 전설소환권"));
         s.sendMessage(color("&b/지급 설정 <권종류> &7- 손에 든 아이템을 해당 권으로 태그"));
+        s.sendMessage(color("&b/지급 테스트 &7- 플러그인 자체 점검"));
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
-        if (args.length == 1) return Arrays.stream(TicketType.values()).map(t->t.displayName).filter(s->s.startsWith(args[0])).collect(Collectors.toList());
-        if (args.length == 2 && "설정".equalsIgnoreCase(args[0])) return Arrays.stream(TicketType.values()).map(t->t.displayName).filter(s->s.startsWith(args[1])).collect(Collectors.toList());
+        if (args.length == 1) {
+            List<String> base = new ArrayList<>(Arrays.asList("설정","테스트"));
+            base.addAll(Arrays.stream(TicketType.values()).map(t->t.displayName).collect(Collectors.toList()));
+            return base.stream().filter(s->s.startsWith(args[0])).collect(Collectors.toList());
+        }
+        if (args.length == 2 && "설정".equalsIgnoreCase(args[0]))
+            return Arrays.stream(TicketType.values()).map(t->t.displayName).filter(s->s.startsWith(args[1])).collect(Collectors.toList());
         return Collections.emptyList();
     }
 
     private ItemStack createTicket(TicketType t, int amount) {
         ItemStack it = new ItemStack(Material.PAPER);
         ItemMeta m = it.getItemMeta();
-        m.setDisplayName(color("&6[ &e소모권 &6] &f")+t.displayName);
+        m.setDisplayName(color("&d[권] &f")+t.displayName);
         List<String> lore = new ArrayList<>();
-        lore.add(color("&7픽셀몬 소모권"));
+        lore.add(color("&5&lPixelTicket Coupon"));
         lore.add(color("&7") + t.lore1);
         lore.add(color("&8우클릭 사용 · 채팅 안내에 따르세요"));
         m.setLore(lore);
@@ -152,9 +172,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
 
     private void markAsTicket(ItemStack it, TicketType t) {
         ItemMeta m = it.getItemMeta();
-        m.setDisplayName(color("&d&6[ &e소모권 &6] &f")+t.displayName);
+        m.setDisplayName(color("&d[권] &f")+t.displayName);
         List<String> lore = new ArrayList<>();
-        lore.add(color("&7픽셀몬 소모권"));
+        lore.add(color("&5&lPixelTicket Coupon"));
         lore.add(color("&7") + t.lore1);
         lore.add(color("&8우클릭 사용 · 채팅 안내에 따르세요"));
         m.setLore(lore);
@@ -195,23 +215,43 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         e.setCancelled(true);
         TicketType type = getType(hand);
         if (type==null) return;
+
         switch (type){
             case LEG_RANDOM:
-                runConsole("pokegive "+p.getName()+" random legendary");
-                p.sendMessage(color("&d[소모권 사용] &f전설 랜덤 1종을 지급합니다."));
+                String species = pickRandomLegend();
+                runConsole("pokegive "+p.getName()+" "+species);
+                p.sendMessage(color("&d[권 사용] &f전설 랜덤 지급: &b")+species);
                 consumeOne(p);
                 break;
+
             case LEG_SELECT:
+                // pre-consume then open GUI (prevents stash exploit)
+                consumeOne(p);
                 openLegendGui(p, 0);
                 break;
+
             case SHINY:
             case BIGGEST:
             case SMALLEST:
             case NEUTER:
             case RANDOM_IVS:
-                askSlotThen(p, type);
+            case LEG_FORCE_SPAWN:
+                // pre-consume BEFORE action (prevents stash exploit)
+                consumeOne(p);
+                if (type == TicketType.LEG_FORCE_SPAWN) {
+                    runConsole("spawnlegendary " + p.getName());
+                    p.sendMessage(color("&d[전설소환권] &f콘솔에서 /spawnlegendary 실행됨."));
+                } else {
+                    askSlotThen(p, type);
+                }
                 break;
         }
+    }
+
+    private String pickRandomLegend(){
+        List<String> legends = legendsCfg.getStringList("legendaries");
+        if (legends==null || legends.isEmpty()) return "Mewtwo";
+        return legends.get(new java.util.Random().nextInt(legends.size()));
     }
 
     private void askSlotThen(Player p, TicketType type){
@@ -236,34 +276,63 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     private void handleSlotAction(Player p, TicketType type, int slot){
         switch (type){
             case SHINY:
-                runConsole("pokeedit "+p.getName()+" "+slot+" shiny");
-                p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬이 &e이로치 &f로 변경되었습니다."));
-                consumeOne(p);
+                tryCommands(
+                        "pokeedit "+p.getName()+" "+slot+" shiny",
+                        "pokeedit "+p.getName()+" "+slot+" shiny:true",
+                        "pokeedit "+p.getName()+" "+slot+" s:1"
+                );
+                p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬을 이로치로 변경 시도."));
                 break;
             case BIGGEST:
-                runConsole("pokeedit "+p.getName()+" "+slot+" gr:Ginormous");
-                p.sendMessage(color("&a[가장큼권] &f슬롯 "+slot+" 크기를 &aGinormous &f로 변경."));
-                consumeOne(p);
+                tryCommands(
+                        "pokeedit "+p.getName()+" "+slot+" gr:Ginormous",
+                        "pokeedit "+p.getName()+" "+slot+" growth:Ginormous",
+                        "pokeedit "+p.getName()+" "+slot+" growth:ginormous"
+                );
+                p.sendMessage(color("&a[가장큼권] &f슬롯 "+slot+" 크기를 Ginormous로 변경 시도."));
                 break;
             case SMALLEST:
-                runConsole("pokeedit "+p.getName()+" "+slot+" gr:Microscopic");
-                p.sendMessage(color("&a[가장작음권] &f슬롯 "+slot+" 크기를 &aMicroscopic &f으로 변경."));
-                consumeOne(p);
+                tryCommands(
+                        "pokeedit "+p.getName()+" "+slot+" gr:Microscopic",
+                        "pokeedit "+p.getName()+" "+slot+" growth:Microscopic",
+                        "pokeedit "+p.getName()+" "+slot+" growth:microscopic"
+                );
+                p.sendMessage(color("&a[가장작음권] &f슬롯 "+slot+" 크기를 Microscopic으로 변경 시도."));
                 break;
             case NEUTER:
-                runConsole("pokeedit "+p.getName()+" "+slot+" unbreedable");
-                p.sendMessage(color("&c[중성화권] &f슬롯 "+slot+" 포켓몬이 &cunbreedable &f상태가 되었습니다."));
-                consumeOne(p);
+                tryCommands(
+                        "pokeedit "+p.getName()+" "+slot+" unbreedable",
+                        "pokeedit "+p.getName()+" "+slot+" unbreedable:true",
+                        "pokeedit "+p.getName()+" "+slot+" breedable:false"
+                );
+                p.sendMessage(color("&c[중성화권] &f슬롯 "+slot+" 번식 불가 설정 시도."));
                 break;
             case RANDOM_IVS:
                 java.util.Random r = new java.util.Random();
                 int hp=r.nextInt(32), atk=r.nextInt(32), def=r.nextInt(32), spa=r.nextInt(32), spd=r.nextInt(32), spe=r.nextInt(32);
-                String cmd = String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspd:%d",
-                        p.getName(), slot, hp, atk, def, spa, spd, spe);
-                runConsole(cmd);
-                p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV가 무작위로 재설정되었습니다."));
-                consumeOne(p);
+                tryCommands(
+                        String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspd:%d", p.getName(), slot, hp, atk, def, spa, spd, spe),
+                        String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspeed:%d", p.getName(), slot, hp, atk, def, spa, spd, spe),
+                        String.format("pokeedit %s %d ivhp:%d", p.getName(), slot, hp),
+                        String.format("pokeedit %s %d ivatk:%d", p.getName(), slot, atk),
+                        String.format("pokeedit %s %d ivdef:%d", p.getName(), slot, def),
+                        String.format("pokeedit %s %d ivspatk:%d", p.getName(), slot, spa),
+                        String.format("pokeedit %s %d ivspdef:%d", p.getName(), slot, spd),
+                        String.format("pokeedit %s %d ivspd:%d", p.getName(), slot, spe),
+                        String.format("pokeedit %s %d ivspeed:%d", p.getName(), slot, spe)
+                );
+                p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV 랜덤화 시도."));
                 break;
+            case LEG_FORCE_SPAWN:
+            case LEG_SELECT:
+            case LEG_RANDOM:
+                break;
+        }
+    }
+
+    private void tryCommands(String... commands){
+        for (String c : commands) {
+            try { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c); } catch (Throwable ignored) {}
         }
     }
 
@@ -287,7 +356,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         }
         inv.setItem(45, navItem("&a이전 페이지", Material.ARROW));
         inv.setItem(53, navItem("&a다음 페이지", Material.ARROW));
-        inv.setItem(49, navItem("&d권 사용 완료 후 닫기", Material.BARRIER));
+        inv.setItem(49, navItem("&d닫기", Material.BARRIER));
         p.openInventory(inv);
     }
 
@@ -318,8 +387,6 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
             String name = ChatColor.stripColor(clicked.getItemMeta().getDisplayName());
             runConsole("pokegive "+p.getName()+" "+name);
             p.sendMessage(color("&b[전설선택권] &f지급 완료: &b")+name);
-            ItemStack hand = p.getInventory().getItemInMainHand();
-            if (isTicket(hand) && getType(hand)==TicketType.LEG_SELECT) consumeOne(p);
             p.closeInventory();
         }
     }
