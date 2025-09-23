@@ -243,7 +243,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
                 // pre-consume BEFORE action (prevents stash exploit)
                 consumeOne(p);
                 if (type == TicketType.LEG_FORCE_SPAWN) {
-                    try { p.performCommand("spawnlegendary {player}"); } catch (Throwable ignored) {}
+                    try { runConsole("spawnlegendary " + p.getName()); } catch (Throwable ignored) {}
                 } else if (type == TicketType.GENDER_MALE) {
                     tryCommands(
                         "pokeedit " + p.getName() + " 1 gender:male",
