@@ -158,9 +158,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     private ItemStack createTicket(TicketType t, int amount) {
         ItemStack it = new ItemStack(Material.PAPER);
         ItemMeta m = it.getItemMeta();
-        m.setDisplayName(color("&d[권] &f")+t.displayName);
+        m.setDisplayName(color("&6[ &e소모권 &6] &f")+t.displayName);
         List<String> lore = new ArrayList<>();
-        lore.add(color("&5&lPixelTicket Coupon"));
+        lore.add(color("&7픽셀몬 소모권"));
         if (t.showHint) lore.add(color("&7") + t.lore1);
         lore.add(color("&8우클릭 사용 · 채팅 안내에 따르세요"));
         m.setLore(lore);
