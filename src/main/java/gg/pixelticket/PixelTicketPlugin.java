@@ -53,7 +53,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         V4("V4 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 4개 IV 31 (나머지 랜덤)", "V4", true),
         V5("V5 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 5개 IV 31 (나머지 랜덤)", "V5", true),
         V6("V6 &c확정권 &f(&c확정&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 6개 IV 전부 31", "V6", true)
-        ;
+        
 
         public final String displayName;
         public final String lore1;
