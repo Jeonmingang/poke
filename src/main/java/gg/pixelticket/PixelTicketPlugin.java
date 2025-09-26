@@ -47,12 +47,12 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         LEG_FORCE_SPAWN("전설소환권", ChatColor.LIGHT_PURPLE + "우클릭 즉시 전설 소환", "LEG_FORCE_SPAWN", false),
         GENDER_MALE("성별변경권(수컷)", ChatColor.AQUA + "채팅에 슬롯 입력 + 수컷으로 변경", "GENDER_MALE", true),
         GENDER_FEMALE("성별변경권(암컷)", ChatColor.AQUA + "채팅에 슬롯 입력 + 암컷으로 변경", "GENDER_FEMALE", true),
-        V1("v1", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 1개 IV 31 (나머지 랜덤)", "V1", true),
-        V2("v2", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 2개 IV 31 (나머지 랜덤)", "V2", true),
-        V3("v3", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 3개 IV 31 (나머지 랜덤)", "V3", true),
-        V4("v4", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 4개 IV 31 (나머지 랜덤)", "V4", true),
-        V5("v5", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 5개 IV 31 (나머지 랜덤)", "V5", true),
-        V6("v6", ChatColor.GOLD + "채팅에 슬롯 입력 + 6개 IV 전부 31", "V6", true)
+        V1("V1 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 1개 IV 31 (나머지 랜덤)", "V1", true),
+        V2("V2 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 2개 IV 31 (나머지 랜덤)", "V2", true),
+        V3("V3 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 3개 IV 31 (나머지 랜덤)", "V3", true),
+        V4("V4 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 4개 IV 31 (나머지 랜덤)", "V4", true),
+        V5("V5 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 랜덤 5개 IV 31 (나머지 랜덤)", "V5", true),
+        V6("V6 &c확정권 &f(&7나머지 랜덤&f)", ChatColor.GOLD + "채팅에 슬롯 입력 + 6개 IV 전부 31", "V6", true)
         ;
 
         public final String displayName;
