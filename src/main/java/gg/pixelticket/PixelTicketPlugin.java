@@ -301,6 +301,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
                     consumeOne(p);
                     runConsole("spawnlegendary " + p.getName());
                 } else {
+                    if (type == TicketType.NEUTER) consumeOne(p);
                     askSlotThen(p, type);
                 }
                 break;
@@ -321,6 +322,10 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e){
         Player p = e.getPlayer();
+        java.util.UUID u = p.getUniqueId();
+        if (heartSlotWaiting.containsKey(u) || pending.containsKey(u)) {
+            e.setCancelled(true);
+        }
         if (heartSlotWaiting.containsKey(p.getUniqueId())){
             // (cancel removed in non-event context)
             String msg = ChatColor.stripColor(e.getMessage()).trim();
