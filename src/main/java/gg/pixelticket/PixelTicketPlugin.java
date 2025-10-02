@@ -100,7 +100,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         loadMoveAliases();
         Bukkit.getPluginManager().registerEvents(this, this);
         Objects.requireNonNull(getCommand("지급")).setExecutor(this);
+        Objects.requireNonNull(getCommand("하트비늘")).setExecutor(this);
         Objects.requireNonNull(getCommand("지급")).setTabCompleter(this);
+        Objects.requireNonNull(getCommand("하트비늘")).setTabCompleter(this);
 
         KEY_TYPE = new NamespacedKey(this, "ticket_type");
         KEY_TAG = new NamespacedKey(this, "ticket_tag");
@@ -290,6 +292,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
                 break;
 
             case SHINY: case BIGGEST: case SMALLEST: case NEUTER:
+            case NATURE_CHANGE:
             case RANDOM_IVS:
             case GENDER_MALE: case GENDER_FEMALE:
             case V1: case V2: case V3: case V4: case V5: case V6:
