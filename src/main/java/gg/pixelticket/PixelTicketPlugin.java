@@ -83,6 +83,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
 
     private NamespacedKey KEY_TYPE;
     private NamespacedKey KEY_TAG;
+    private NamespacedKey HEART_KEY;
 
     private File legendsFile;
     private FileConfiguration legendsCfg;
@@ -91,6 +92,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     private FileConfiguration legendNamesCfg;
 
     private final Map<UUID, PendingAction> pending = new HashMap<>();
+    private final java.util.concurrent.ConcurrentHashMap<java.util.UUID, Long> lastUseMs = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long USE_COOLDOWN_MS = 350;
+
     static class PendingAction { final TicketType type; PendingAction(TicketType t){ this.type=t; } }
 
     @Override
@@ -106,6 +110,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
 
         KEY_TYPE = new NamespacedKey(this, "ticket_type");
         KEY_TAG = new NamespacedKey(this, "ticket_tag");
+        HEART_KEY = new NamespacedKey(this, "heart_scale");
 
         saveResource("legendaries.yml", false);
         legendsFile = new File(getDataFolder(), "legendaries.yml");
@@ -144,7 +149,15 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
                 Player p=(Player)sender; org.bukkit.inventory.ItemStack refund = heartRefund.remove(p.getUniqueId()); if (refund!=null) p.getInventory().addItem(refund); heartSlotWaiting.remove(p.getUniqueId()); sender.sendMessage(color("&7작업을 취소했습니다.")); return true;
             }
             if (args[0].equalsIgnoreCase("아이템")){
-                if (!(sender instanceof Player)){ sender.sendMessage("플레이어만 사용 가능"); return true; }
+                if (!(sender instanceof Player)){ sender.sendMessage("플레이어만 사용 가능");             try {
+                org.bukkit.inventory.ItemStack hand = ((Player)sender).getInventory().getItemInMainHand();
+                if (hand!=null && hand.hasItemMeta()) {
+                    org.bukkit.inventory.meta.ItemMeta _m = hand.getItemMeta();
+                    _m.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
+                    hand.setItemMeta(_m);
+                }
+            } catch(Exception __){}
+            return true; }
                 Player p=(Player)sender; org.bukkit.inventory.ItemStack hand=p.getInventory().getItemInMainHand(); if (hand==null||!hand.hasItemMeta()){ sender.sendMessage(color("&c손에 든 아이템이 없습니다.")); return true; }
                 org.bukkit.inventory.meta.ItemMeta m=hand.getItemMeta(); heartName = m.hasDisplayName()? m.getDisplayName() : "&d하트비늘"; heartLore = m.getLore()==null? new java.util.ArrayList<>() : m.getLore(); sender.sendMessage(color("&a하트비늘 아이템 설정 완료.")); return true;
             }
@@ -152,7 +165,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
                 if (args.length<3){ sender.sendMessage(color("&c사용법: /하트비늘 지급 <플레이어> <개수>")); return true; }
                 org.bukkit.entity.Player t = org.bukkit.Bukkit.getPlayerExact(args[1]); if (t==null){ sender.sendMessage(color("&c플레이어를 찾을 수 없습니다.")); return true; }
                 int cnt; try{ cnt=Integer.parseInt(args[2]); }catch(Exception ex){ sender.sendMessage(color("&c개수는 숫자.")); return true; }
-                org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PRISMARINE_CRYSTALS, cnt); org.bukkit.inventory.meta.ItemMeta m = it.getItemMeta(); m.setDisplayName(heartName); if (heartLore!=null && !heartLore.isEmpty()) m.setLore(heartLore); it.setItemMeta(m); t.getInventory().addItem(it); sender.sendMessage(color("&a지급 완료.")); return true;
+                org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PRISMARINE_CRYSTALS, cnt); org.bukkit.inventory.meta.ItemMeta m = it.getItemMeta(); m.setDisplayName(heartName); if (heartLore!=null && !heartLore.isEmpty()) m.setLore(heartLore); it.setItemMeta(m); t.getInventory().it.getItemMeta().getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
+                org.bukkit.inventory.meta.ItemMeta __hm = it.getItemMeta(); __hm.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1); it.setItemMeta(__hm);
+                target.getInventory().addItem(it); sender.sendMessage(color("&a지급 완료.")); return true;
             }
             sender.sendMessage(color("&c알 수 없는 하위명령")); return true;
         }
@@ -272,6 +287,11 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         if (e.getHand() != EquipmentSlot.HAND) return; // 보조손 중복 방지
         if (e.getAction()!=Action.RIGHT_CLICK_AIR && e.getAction()!=Action.RIGHT_CLICK_BLOCK) return;
         Player p = e.getPlayer();
+        // dedupe per player
+        long now = System.currentTimeMillis();
+        long last = lastUseMs.getOrDefault(p.getUniqueId(), 0L);
+        if (now - last < USE_COOLDOWN_MS) return;
+        lastUseMs.put(p.getUniqueId(), now);
         ItemStack hand = p.getInventory().getItemInMainHand();
         
         if (!isTicket(hand)) return;
@@ -515,7 +535,11 @@ final int fslot = slot;
         }
     }
 
-    private void runConsole(String command){ Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command); }
+    private void runConsole(String command){
+        String cmd = command;
+        if (cmd != null && !cmd.contains(":")) cmd = "pixelmon:" + cmd;
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+    }
 
     private void openLegendGui(Player p, int page){
         java.util.List<String> legends = legendsCfg.getStringList("legendaries");
@@ -651,6 +675,7 @@ final int fslot = slot;
     private boolean isHeart(ItemStack it){
         if (it==null || !it.hasItemMeta()) return false;
         ItemMeta m = it.getItemMeta();
+        if (m.getPersistentDataContainer().has(HEART_KEY, PersistentDataType.BYTE)) return true;
         String dn = m.hasDisplayName()? m.getDisplayName() : "";
         java.util.List<String> lo = m.getLore();
         boolean nameEq = ChatColor.stripColor(dn).trim().equalsIgnoreCase(ChatColor.stripColor(color(heartName)).trim());
