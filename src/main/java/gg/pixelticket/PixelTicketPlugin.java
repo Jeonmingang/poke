@@ -39,7 +39,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
 
 
     public enum TicketType {
-        LEG_RANDOM("전설랜덤소환권", ChatColor.LIGHT_PURPLE + "우클릭 즉시 전설 랜덤 지급", "LEG_RANDOM", false),
+        LEG_RANDOM("전설랜덤권", ChatColor.LIGHT_PURPLE + "우클릭 즉시 전설 랜덤 지급", "LEG_RANDOM", false),
         LEG_SELECT("전설선택권", ChatColor.AQUA + "GUI에서 전설 선택 지급", "LEG_SELECT", false),
         SHINY("이로치권", ChatColor.YELLOW + "채팅에 슬롯 입력 + 이로치 변경", "SHINY", true),
         BIGGEST("가장큼권", ChatColor.GREEN + "채팅에 슬롯 입력 + 크기 Ginormous", "BIGGEST", true),
@@ -238,7 +238,7 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
 
     private void help(CommandSender s){
         s.sendMessage(color("&b/지급 <권종류> <플레이어> <갯수>"));
-        s.sendMessage(color("&7권종류: &f전설랜덤소환권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권, 전설소환권, 성별변경권(수컷), 성별변경권(암컷), v1, v2, v3, v4, v5, v6"));
+        s.sendMessage(color("&7권종류: &f전설랜덤권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권, 전설소환권, 성별변경권(수컷), 성별변경권(암컷), v1, v2, v3, v4, v5, v6"));
         s.sendMessage(color("&b/지급 설정 <권종류> &7- 손에 든 아이템을 해당 권으로 태그"));
         s.sendMessage(color("&b/지급 테스트 &7- 플러그인 자체 점검"));
     }
@@ -539,6 +539,7 @@ final int fslot = slot;
                         String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspd:%d", p.getName(), slot, hp, atk, def, spa, spd, spe),
                         String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspeed:%d", p.getName(), slot, hp, atk, def, spa, spd, spe)
                 );
+                consumeOne(p);
                 p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV 전부 랜덤화 시도."));
                 break;
             case GENDER_MALE:

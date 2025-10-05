@@ -19,7 +19,7 @@ import java.util.List;
 public class MountGuardListener implements Listener {
     private final PixelTicketPlugin plugin;
     private final List<String> voucherNames = Arrays.asList(
-            "전설랜덤소환권","전설선택권","전설소환권",
+            "전설랜덤권","전설선택권","전설소환권",
             "이로치권","가장큼권","가장작음권",
             "중성화권","성격변경권","랜덤개체값권",
             "성별변경권(수컷)","성별변경권(암컷)",
