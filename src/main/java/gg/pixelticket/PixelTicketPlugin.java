@@ -256,7 +256,24 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         return Collections.emptyList();
     }
 
-    private ItemStack createTicket(TicketType t, int amount) {
+    private 
+private ItemStack cloneFromTemplateOrHand(TicketType type, Player p) {
+    try {
+        ItemStack t = itemTemplates.get(type);
+        if (t != null && t.getType() != Material.AIR) {
+            return t.clone();
+        }
+    } catch (Throwable ignored) {}
+    // fallback to player's hand (the same logic as '/하트비늘 아이템')
+    ItemStack hand = p.getInventory().getItemInMainHand();
+    if (hand != null && hand.getType() != Material.AIR) {
+        return hand.clone();
+    }
+    // final fallback: build default by createTicket(type)
+    return createTicket(type, p);
+}
+
+ItemStack createTicket(TicketType t, int amount) {
         ItemStack it = new ItemStack(Material.PAPER);
         ItemMeta m = it.getItemMeta();
         m.setDisplayName(color("&6[ &e소모권 &6] &f") + t.displayName);
@@ -436,7 +453,7 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
                     int slot = code / 10;
                     int idx  = code % 10;
                     // PBLite command (exact slot index replacement)
-                    tryCommands("pb setmove "+p.getName()+" "+slot+" "+idx+" "+move);
+                    tryCommands("pr setmove "+p.getName()+" "+slot+" "+idx+" "+move);
                     heartSlotWaiting.remove(p.getUniqueId());
                     heartRefund.remove(p.getUniqueId());
                     p.sendMessage(color("&a기술을 변경했습니다: &f슬롯 "+slot+" / 칸 "+idx+" → &e"+move));
