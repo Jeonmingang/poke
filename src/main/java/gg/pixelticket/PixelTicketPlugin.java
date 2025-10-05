@@ -100,8 +100,6 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     @Override
     public void onEnable(){
         loadMoveAliases();
-        loadMoveAliases();
-        loadMoveAliases();
         Bukkit.getPluginManager().registerEvents(this, this);
         Objects.requireNonNull(getCommand("지급")).setExecutor(this);
         Objects.requireNonNull(getCommand("하트비늘")).setExecutor(this);
@@ -149,20 +147,43 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
                 Player p=(Player)sender; org.bukkit.inventory.ItemStack refund = heartRefund.remove(p.getUniqueId()); if (refund!=null) p.getInventory().addItem(refund); heartSlotWaiting.remove(p.getUniqueId()); sender.sendMessage(color("&7작업을 취소했습니다.")); return true;
             }
             if (args[0].equalsIgnoreCase("아이템")){
-                if (!(sender instanceof Player)){ sender.sendMessage("플레이어만 사용 가능");             try {
-                org.bukkit.inventory.ItemStack hand = ((Player)sender).getInventory().getItemInMainHand();
-                if (hand!=null && hand.hasItemMeta()) {
-                    org.bukkit.inventory.meta.ItemMeta _m = hand.getItemMeta();
-                    _m.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
-                    hand.setItemMeta(_m);
-                }
-            } catch(Exception __){}
+                
+    if (!(sender instanceof org.bukkit.entity.Player)) { sender.sendMessage("플레이어만 사용 가능"); return true; }
+    org.bukkit.entity.Player __p = (org.bukkit.entity.Player) sender;
+    org.bukkit.inventory.ItemStack __hand = __p.getInventory().getItemInMainHand();
+    if (__hand == null || __hand.getType() == org.bukkit.Material.AIR) { sender.sendMessage(color("&c손에 든 아이템이 없습니다.")); return true; }
+    org.bukkit.inventory.meta.ItemMeta __hm = __hand.getItemMeta();
+    if (__hm == null) { sender.sendMessage(color("&c아이템 메타가 없습니다.")); return true; }
+    __hm.setDisplayName(color(getHeartNameSafe()));
+    if (heartLore != null && !heartLore.isEmpty()) __hm.setLore(heartLore);
+    __hm.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
+    __hand.setItemMeta(__hm);
+    sender.sendMessage(color("&a하트비늘 아이템 설정 완료."));
+    return true;
+
             return true; }
                 Player p=(Player)sender; org.bukkit.inventory.ItemStack hand=p.getInventory().getItemInMainHand(); if (hand==null||!hand.hasItemMeta()){ sender.sendMessage(color("&c손에 든 아이템이 없습니다.")); return true; }
                 org.bukkit.inventory.meta.ItemMeta m=hand.getItemMeta(); heartName = m.hasDisplayName()? m.getDisplayName() : "&d하트비늘"; heartLore = m.getLore()==null? new java.util.ArrayList<>() : m.getLore(); sender.sendMessage(color("&a하트비늘 아이템 설정 완료.")); return true;
             }
             if (args[0].equalsIgnoreCase("지급")){
-                if (args.length<3){ sender.sendMessage(color("&c사용법: /하트비늘 지급 <플레이어> <개수>")); return true; }
+                
+    if (args.length<3){ sender.sendMessage(color("&c사용법: /하트비늘 지급 <플레이어> <개수>")); return true; }
+    org.bukkit.entity.Player t = org.bukkit.Bukkit.getPlayerExact(args[1]);
+    if (t == null) { sender.sendMessage(color("&c플레이어를 찾을 수 없습니다.")); return true; }
+    int cnt; 
+    try { cnt = Integer.parseInt(args[2]); } catch (Exception ex){ sender.sendMessage(color("&c개수는 숫자.")); return true; }
+    org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER, Math.max(1, cnt));
+    org.bukkit.inventory.meta.ItemMeta m = it.getItemMeta();
+    if (m != null) {
+        m.setDisplayName(color(getHeartNameSafe()));
+        if (heartLore != null && !heartLore.isEmpty()) m.setLore(heartLore);
+        m.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
+        it.setItemMeta(m);
+    }
+    t.getInventory().addItem(it);
+    sender.sendMessage(color("&a지급 완료: &f")+t.getName()+" &7x"+cnt);
+    return true;
+ return true; }
                 org.bukkit.entity.Player t = org.bukkit.Bukkit.getPlayerExact(args[1]); if (t==null){ sender.sendMessage(color("&c플레이어를 찾을 수 없습니다.")); return true; }
                 int cnt; try{ cnt=Integer.parseInt(args[2]); }catch(Exception ex){ sender.sendMessage(color("&c개수는 숫자.")); return true; }
                 org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PRISMARINE_CRYSTALS, cnt); org.bukkit.inventory.meta.ItemMeta m = it.getItemMeta(); m.setDisplayName(heartName); if (heartLore!=null && !heartLore.isEmpty()) m.setLore(heartLore); it.setItemMeta(m); 
@@ -298,6 +319,21 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         if (now - last < USE_COOLDOWN_MS) return;
         lastUseMs.put(p.getUniqueId(), now);
         ItemStack hand = p.getInventory().getItemInMainHand();
+    // === Heart Scale use start ===
+    if (hand != null && hand.getType() != Material.AIR && isHeart(hand)) {
+        e.setCancelled(true);
+        java.util.UUID u = p.getUniqueId();
+        if (heartSlotWaiting.containsKey(u)) {
+            p.sendMessage(color("&c이미 진행 중입니다. 채팅에 슬롯(1~6)을 입력하거나 &e/하트비늘 취소&c 를 사용하세요."));
+            return;
+        }
+        consumeOneHeart(p); // keep refund for /하트비늘 취소
+        heartSlotWaiting.put(u, -1);
+        p.sendMessage(color("&d[하트비늘] &f대상 &e슬롯(1~6)&f을 채팅으로 입력하세요. &7(취소: &e/하트비늘 취소&7)"));
+        return;
+    }
+    // === Heart Scale use end ===
+
         
         if (!isTicket(hand)) return;
         // (cancel removed in non-event context)
