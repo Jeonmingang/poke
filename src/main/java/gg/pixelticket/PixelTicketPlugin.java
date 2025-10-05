@@ -171,9 +171,10 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
             }
             org.bukkit.entity.Player p = (org.bukkit.entity.Player) sender;
             org.bukkit.inventory.ItemStack held = p.getInventory().getItemInMainHand();
-            org.bukkit.inventory.ItemStack heart = createHeartItemFrom(held);
+            saveHeartTemplateFrom(held);
+            org.bukkit.inventory.ItemStack heart = createHeartFromTemplate(Math.max(1, held.getAmount()));
             p.getInventory().setItemInMainHand(heart);
-            sender.sendMessage("§d[하트비늘] 손에 든 아이템을 하트비늘로 변환했습니다. (재료 포함)");
+            sender.sendMessage(color("&d[하트비늘] 손에 든 아이템을 템플릿으로 저장하고, 해당 설정으로 변환했습니다."));
             return true;
     
             }
@@ -391,9 +392,10 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         if (heartSlotWaiting.containsKey(u) || pending.containsKey(u)) {
             e.setCancelled(true);
         }
+        
         if (heartSlotWaiting.containsKey(p.getUniqueId())){
-            // (cancel removed in non-event context)
-            String msg = ChatColor.stripColor(e.getMessage()).trim();
+            String raw = e.getMessage();
+            String msg = ChatColor.stripColor(raw).trim();
             if (msg.equalsIgnoreCase("취소")){
                 ItemStack refund = heartRefund.remove(p.getUniqueId());
                 if (refund!=null) p.getInventory().addItem(refund);
@@ -401,41 +403,59 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
                 p.sendMessage(color("&7작업을 취소했습니다."));
                 return;
             }
-            int st = heartSlotWaiting.get(p.getUniqueId());
+            int st = heartSlotWaiting.get(p.getUniqueId()); // -1: need party slot; >=100: need index; >=200: need #move; 1..6: need #move (teach)
             try{
-                if (st==-1){
+                if (st == -1){
                     int slot = Integer.parseInt(msg);
                     if (slot<1 || slot>6){ p.sendMessage(color("&c1~6 사이의 숫자를 입력하세요.")); return; }
-                    heartSlotWaiting.put(p.getUniqueId(), slot);
-                    p.sendMessage(color("&f지울 기술 &e번호(1~4)&f를 입력하세요. 이후 &e#Thunderbolt&f 형식으로 기술명(한글/영문)을 입력하면 가르칩니다."));
+                    if (hasPBLite()){
+                        heartSlotWaiting.put(p.getUniqueId(), 100 + slot); // expect index next
+                        p.sendMessage(color("&f변경할 기술 칸 &e번호(1~4)&f를 입력하세요."));
+                    } else {
+                        heartSlotWaiting.put(p.getUniqueId(), slot); // expect #move next (teach)
+                        p.sendMessage(color("&f이제 &e#기술이름(한글/영문)&f을 입력하세요. 예: #Thunderbolt"));
+                    }
                     return;
                 }
-                if (!msg.startsWith("#")){
+                // If expecting index (PBLite path)
+                if (st >= 100 && st < 200 && !msg.startsWith("#")){
                     int idx = Integer.parseInt(msg);
                     if (idx<1 || idx>4){ p.sendMessage(color("&c1~4 사이의 숫자를 입력하세요.")); return; }
-                    // forget first
-                    tryCommands(
-                        "minecraft:forget "+p.getName()+" "+st+" "+idx,
-                        "pokebuilder set "+p.getName()+" "+st+" forget "+idx
-                    );
-                    p.sendMessage(color("&7삭제 완료. &f이제 &e#기술이름(한글/영문)&f을 입력하세요."));
+                    int slot = st - 100;
+                    heartSlotWaiting.put(p.getUniqueId(), 200 + (slot*10 + idx)); // expect #move
+                    p.sendMessage(color("&7이제 &e#기술이름(한글/영문)&f을 입력하세요. 예: #Flamethrower"));
                     return;
-                } else {
-                    String move = translateMove(msg.substring(1));
-                    if (move.isEmpty()){ p.sendMessage(color("&c기술명(한글/영문)을 입력하세요. 예: #Thunderbolt")); return; }
-                    tryCommands(
-                        "minecraft:teach "+p.getName()+" "+st+" "+move,
-                        "pokebuilder set "+p.getName()+" "+st+" teach "+move
-                    );
+                }
+                // If expecting #move now
+                if (!msg.startsWith("#")){ p.sendMessage(color("&c#기술이름 형식으로 입력하세요. 예: #Thunderbolt")); return; }
+                String move = translateMove(msg.substring(1));
+                if (move.isEmpty()){ p.sendMessage(color("&c기술명(한글/영문)을 입력하세요. 예: #Thunderbolt")); return; }
+
+                if (st >= 200){
+                    int code = st - 200;
+                    int slot = code / 10;
+                    int idx  = code % 10;
+                    // PBLite command (exact slot index replacement)
+                    tryCommands("pb setmove "+p.getName()+" "+slot+" "+idx+" "+move);
+                    heartSlotWaiting.remove(p.getUniqueId());
+                    heartRefund.remove(p.getUniqueId());
+                    p.sendMessage(color("&a기술을 변경했습니다: &f슬롯 "+slot+" / 칸 "+idx+" → &e"+move));
+                    return;
+                } else if (st >= 1 && st <= 6){
+                    int slot = st;
+                    // Fallback: teach (Pixelmon)
+                    tryCommands("teach "+p.getName()+" "+slot+" "+move);
                     heartSlotWaiting.remove(p.getUniqueId());
                     heartRefund.remove(p.getUniqueId());
                     p.sendMessage(color("&a기술을 가르쳤습니다."));
                     return;
                 }
-            }catch(NumberFormatException ex){ p.sendMessage(color("&c숫자를 입력하세요.")); return; }
+            }catch(NumberFormatException ex){
+                p.sendMessage(color("&c숫자를 입력하세요."));
+                return;
+            }
         }
-
-        if (!pending.containsKey(u)) return;
+if (!pending.containsKey(u)) return;
         // (cancel removed in non-event context)
         String msg = e.getMessage().trim();
         int slot;
@@ -449,6 +469,13 @@ final int fslot = slot;
         new BukkitRunnable(){ @Override public void run(){ handleSlotAction(fp, fpa.type, fslot); } }.runTask(this);
     }
 
+    
+    private boolean hasPBLite(){
+        try {
+            org.bukkit.plugin.Plugin p = getServer().getPluginManager().getPlugin("PokebuilderLite");
+            return p != null && p.isEnabled();
+        } catch (Throwable t){ return false; }
+    }
     private void handleSlotAction(Player p, TicketType type, int slot){
         // v1~v6 변경권: Ditto(메타몽) 슬롯 보호
         if (type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 || type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
@@ -579,7 +606,10 @@ final int fslot = slot;
 
     private void tryCommands(String... commands){
         for (String c : commands) {
-            try { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c); } catch (Throwable ignored) {}
+            try {
+                boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c);
+                if (ok) { getLogger().info("[PixelTicket] Ran: "+c); break; }
+            } catch (Throwable ex) { getLogger().warning("[PixelTicket] Command failed: "+c+" | "+ex.getMessage()); }
         }
     }
 
@@ -751,7 +781,48 @@ public String getHeartNameSafe(){
 
 
     // -- reinserted alias block --
-private void loadMoveAliases(){
+
+    // === Heart Template Persistence ===
+    private java.io.File heartTplFile;
+    private void ensureHeartTplFile(){
+        if (heartTplFile == null) heartTplFile = new java.io.File(getDataFolder(), "heart_template.yml");
+    }
+    private void saveHeartTemplateFrom(org.bukkit.inventory.ItemStack src){
+        ensureHeartTplFile();
+        try{
+            org.bukkit.configuration.file.YamlConfiguration y = new org.bukkit.configuration.file.YamlConfiguration();
+            y.set("material", src.getType().name());
+            org.bukkit.inventory.meta.ItemMeta m = src.getItemMeta();
+            if (m != null && m.hasDisplayName()) y.set("name", m.getDisplayName());
+            java.util.List<String> lore = (m!=null && m.hasLore()) ? m.getLore() : null;
+            if (lore!=null) y.set("lore", lore);
+            y.save(heartTplFile);
+        }catch(Exception ex){ getLogger().warning("[PixelTicket] heart_template.yml 저장 실패: "+ex.getMessage()); }
+    }
+    private org.bukkit.inventory.ItemStack createHeartFromTemplate(int amount){
+        ensureHeartTplFile();
+        org.bukkit.inventory.ItemStack it;
+        org.bukkit.configuration.file.YamlConfiguration y = null;
+        if (heartTplFile.exists()){
+            y = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(heartTplFile);
+        }
+        String mat = y!=null ? y.getString("material", "PRISMARINE_CRYSTALS") : "PRISMARINE_CRYSTALS";
+        it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.matchMaterial(mat)!=null? org.bukkit.Material.matchMaterial(mat): org.bukkit.Material.PRISMARINE_CRYSTALS);
+        org.bukkit.inventory.meta.ItemMeta meta = it.getItemMeta();
+        String name = y!=null ? y.getString("name", color("&d하트비늘")) : color("&d하트비늘");
+        java.util.List<String> lore = y!=null && y.isList("lore") ? y.getStringList("lore") : java.util.Arrays.asList(color("&7기술 교습 아이템"), color("&8우클릭 후 가이드에 따르세요"));
+        meta.setDisplayName(name);
+        meta.setLore(lore);
+        try{
+            meta.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
+            meta.getPersistentDataContainer().set(HEART_VER, org.bukkit.persistence.PersistentDataType.INTEGER, HEART_VERSION);
+        }catch(Throwable ignored){}
+        it.setItemMeta(meta);
+        it.setAmount(Math.max(1, amount));
+        return it;
+    }
+
+    private void loadMoveAliases(){
     try {
         java.io.File dataDir = getDataFolder();
         if (!dataDir.exists()) dataDir.mkdirs();
