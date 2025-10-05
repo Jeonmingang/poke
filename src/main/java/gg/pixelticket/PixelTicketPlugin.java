@@ -520,6 +520,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" g:male",
                         "pokeedit "+p.getName()+" "+slot+" sex:male"
                 );
+                consumeOne(p);
                 p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 수컷으로 변경 시도."));
                 break;
             case GENDER_FEMALE:
@@ -528,6 +529,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" g:female",
                         "pokeedit "+p.getName()+" "+slot+" sex:female"
                 );
+                consumeOne(p);
                 p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 암컷으로 변경 시도."));
                 break;
             case V1: case V2: case V3: case V4: case V5: case V6:
