@@ -830,4 +830,78 @@ private String translateMove(String raw){
     String mapped = moveAlias.get(key);
     return mapped != null ? mapped : m;
 }
-}// Java 8 / Spigot 1.16.5
+
+    // === Added safe implementations ===
+    private void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
+        if (item == null) return;
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (KEY_TAG != null) pdc.set(KEY_TAG, org.bukkit.persistence.PersistentDataType.INTEGER, 1);
+        if (KEY_TYPE != null) pdc.set(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING, type != null ? type.id : "UNKNOWN");
+        // ensure visible name at least
+        if (type != null) {
+            String name = type.displayName != null ? type.displayName : type.name();
+            try { meta.setDisplayName(name); } catch (Throwable ignored) {}
+        }
+        item.setItemMeta(meta);
+    }
+
+    private boolean isTicket(org.bukkit.inventory.ItemStack item){
+        if (item == null) return false;
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return false;
+        try {
+            org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (KEY_TYPE != null) {
+                String id = pdc.get(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING);
+                return id != null && !id.isEmpty();
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
+    private TicketType getType(org.bukkit.inventory.ItemStack item){
+        if (item == null) return null;
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return null;
+        try {
+            org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (KEY_TYPE != null) {
+                String id = pdc.get(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING);
+                if (id != null) return TicketType.fromKorean(id);
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private org.bukkit.inventory.ItemStack createTicket(TicketType type, int amount){
+        // Heart scale는 별도 명령으로 처리하고, 여기서는 일반 티켓 기본 생성
+        org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER, Math.max(1, amount));
+        org.bukkit.inventory.meta.ItemMeta meta = it.getItemMeta();
+        String name = type != null && type.displayName != null ? type.displayName : "권";
+        try { meta.setDisplayName(name); } catch (Throwable ignored) {}
+        java.util.List<String> lore = new java.util.ArrayList<>();
+        if (type != null && type.desc != null) lore.add(type.desc);
+        lore.add(org.bukkit.ChatColor.GRAY + "우클릭해서 사용");
+        try { meta.setLore(lore); } catch (Throwable ignored) {}
+        it.setItemMeta(meta);
+        markAsTicket(it, type);
+        return it;
+    }
+
+    private void consumeOne(org.bukkit.entity.Player p){
+        try {
+            org.bukkit.inventory.ItemStack hand = p.getInventory().getItemInMainHand();
+            if (hand == null || hand.getType() == org.bukkit.Material.AIR) return;
+            if (!isTicket(hand)) return;
+            int amt = hand.getAmount();
+            if (amt <= 1) {
+                p.getInventory().setItemInMainHand(new org.bukkit.inventory.ItemStack(org.bukkit.Material.AIR));
+            } else {
+                hand.setAmount(amt - 1);
+            }
+        } catch (Throwable ignored) {}
+    }
+
+}
