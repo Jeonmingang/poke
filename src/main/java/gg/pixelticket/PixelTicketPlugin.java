@@ -184,14 +184,7 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
                 if (t == null) { sender.sendMessage(color("&c플레이어를 찾을 수 없습니다.")); return true; }
                 int cnt; 
                 try { cnt = Integer.parseInt(args[2]); } catch (Exception ex){ sender.sendMessage(color("&c개수는 숫자.")); return true; }
-                org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER, Math.max(1, cnt));
-                org.bukkit.inventory.meta.ItemMeta m2 = it.getItemMeta();
-                if (m2 != null) {
-                    m2.setDisplayName(color(getHeartNameSafe()));
-                    if (heartLore != null && !heartLore.isEmpty()) m2.setLore(heartLore);
-                    m2.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
-                    it.setItemMeta(m2);
-                }
+                org.bukkit.inventory.ItemStack it = createHeartFromTemplate(Math.max(1, cnt));
                 t.getInventory().addItem(it);
                 sender.sendMessage(color("&a지급 완료: &f")+t.getName()+" &7x"+cnt);
                 return true;
