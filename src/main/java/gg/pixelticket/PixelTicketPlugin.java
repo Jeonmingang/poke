@@ -248,13 +248,6 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
             return Arrays.stream(TicketType.values()).map(t->t.displayName).filter(s->s.startsWith(args[1])).collect(Collectors.toList());
         return Collections.emptyList();
     }
-
-    private ItemStack cloneFromTemplateOrHand(TicketType type, Player p) {
-    try {
-        ItemStack t = itemTemplates.get(type);
-        if (t != null && t.getType() != Material.AIR) {
-            return t.clone();
-        }
     } catch (Throwable ignored) {}
     // fallback to player's hand (the same logic as '/하트비늘 아이템')
     ItemStack hand = p.getInventory().getItemInMainHand();
