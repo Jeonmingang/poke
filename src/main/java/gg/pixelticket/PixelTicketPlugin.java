@@ -256,8 +256,7 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         return Collections.emptyList();
     }
 
-    private 
-private ItemStack cloneFromTemplateOrHand(TicketType type, Player p) {
+    private ItemStack cloneFromTemplateOrHand(TicketType type, Player p) {
     try {
         ItemStack t = itemTemplates.get(type);
         if (t != null && t.getType() != Material.AIR) {
