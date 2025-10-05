@@ -882,7 +882,7 @@ private String translateMove(String raw){
         String name = type != null && type.displayName != null ? type.displayName : "권";
         try { meta.setDisplayName(name); } catch (Throwable ignored) {}
         java.util.List<String> lore = new java.util.ArrayList<>();
-        if (type != null && type.desc != null) lore.add(type.desc);
+        if (type != null && type.displayName != null) lore.add(type.displayName);
         lore.add(org.bukkit.ChatColor.GRAY + "우클릭해서 사용");
         try { meta.setLore(lore); } catch (Throwable ignored) {}
         it.setItemMeta(meta);
