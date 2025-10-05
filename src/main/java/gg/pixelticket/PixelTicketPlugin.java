@@ -245,75 +245,9 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
             return base.stream().filter(s->s.startsWith(args[0])).collect(Collectors.toList());
         }
         if (args.length == 2 && "설정".equalsIgnoreCase(args[0]))
-            return Arrays.stream(TicketType.values()).map(t->t.displayName).filter(s->s.startsWith(args[1])).collect(Collectors.toList());
+            return Arrays.asList("하트비늘","랜덤개체값권","강화","설정").stream().filter(s1->s1.startsWith(args[1])).collect(Collectors.toList());
         return Collections.emptyList();
     }
-    } catch (Throwable ignored) {}
-    // fallback to player's hand (the same logic as '/하트비늘 아이템')
-    ItemStack hand = p.getInventory().getItemInMainHand();
-    if (hand != null && hand.getType() != Material.AIR) {
-        return hand.clone();
-    }
-    // final fallback: build default by createTicket(type)
-    return createTicket(type, p);
-}
-
-ItemStack createTicket(TicketType t, int amount) {
-        ItemStack it = new ItemStack(Material.PAPER);
-        ItemMeta m = it.getItemMeta();
-        m.setDisplayName(color("&6[ &e소모권 &6] &f") + t.displayName);
-        List<String> lore = new ArrayList<>();
-        lore.add(color("&7픽셀몬 소모권"));
-        lore.add(color("&6") + t.lore1.replace("→", "+"));
-        lore.add(color("&8우클릭 사용 · 채팅 안내에 따르세요"));
-        m.setLore(lore);
-        m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        m.addEnchant(Enchantment.LUCK, 1, true);
-        PersistentDataContainer pdc = m.getPersistentDataContainer();
-        pdc.set(KEY_TYPE, PersistentDataType.STRING, t.id);
-        pdc.set(KEY_TAG, PersistentDataType.STRING, "PIXELTICKET");
-        it.setItemMeta(m);
-        it.setAmount(Math.max(1, amount));
-        return it;
-    }
-
-    private void markAsTicket(ItemStack it, TicketType t) {
-        ItemMeta m = it.getItemMeta();
-        m.setDisplayName(color("&6[ &e소모권 &6] &f") + t.displayName);
-        List<String> lore = new ArrayList<>();
-        lore.add(color("&7픽셀몬 소모권"));
-        lore.add(color("&6") + t.lore1.replace("→", "+"));
-        lore.add(color("&8우클릭 사용 · 채팅 안내에 따르세요"));
-        m.setLore(lore);
-        m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        m.addEnchant(Enchantment.LUCK, 1, true);
-        PersistentDataContainer pdc = m.getPersistentDataContainer();
-        pdc.set(KEY_TYPE, PersistentDataType.STRING, t.id);
-        pdc.set(KEY_TAG, PersistentDataType.STRING, "PIXELTICKET");
-        it.setItemMeta(m);
-    }
-
-    private boolean isTicket(ItemStack it){
-        if (it==null || it.getType()==Material.AIR || !it.hasItemMeta()) return false;
-        return "PIXELTICKET".equals(it.getItemMeta().getPersistentDataContainer().get(KEY_TAG, PersistentDataType.STRING));
-    }
-
-    private TicketType getType(ItemStack it){
-        if (!isTicket(it)) return null;
-        String id = it.getItemMeta().getPersistentDataContainer().get(KEY_TYPE, PersistentDataType.STRING);
-        if (id==null) return null;
-        for (TicketType t: TicketType.values()) if (t.id.equalsIgnoreCase(id)) return t;
-        return null;
-    }
-
-    private void consumeOne(Player p){
-        ItemStack hand = p.getInventory().getItemInMainHand();
-        
-        if (hand==null) return;
-        int amt = hand.getAmount();
-        if (amt<=1) p.getInventory().setItemInMainHand(null); else hand.setAmount(amt-1);
-    }
-
     @EventHandler
     public void onUse(PlayerInteractEvent e){
         if (e.getHand() != EquipmentSlot.HAND) return; // 보조손 중복 방지
