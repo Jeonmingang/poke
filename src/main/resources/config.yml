@@ -1,0 +1,33 @@
+# UltimateBackpack v1.2.0
+backpack:
+  sizes-allowed: [9, 18, 27, 36, 45, 54]
+  starter-size: 9
+  max-size: 54
+  title-format: "&6[개인가방] &e%player% &7(%size%)"
+  open-sound: "BLOCK_CHEST_OPEN"
+  blocked-worlds: []
+  prevent-drop-while-open: true
+  allow-command-open: true
+  default-world: "bskyblock_world"
+starter-item:
+  give-on-first-join: false
+  material: "CHEST"
+  display-name: "&6가방"
+  lore:
+    - "&7우클릭으로 개인 가방 열기"
+    - "&8(아이템 분실해도 보관내용은 유지)"
+  match-by-name: false
+ticket:
+  material: "PAPER"
+  display-name: "&d가방 확장권"
+  lore:
+    - "&7사용 시 다음 단계로 가방 크기 확장"
+    - "&8최대: 54칸"
+
+
+sanitize:
+  debug: false
+  enabled: true
+  max-pdc-string-bytes: 32760   # 큰 문자열 PDC 제거(UTF 한계 고려)
+  max-lore-line-chars: 512      # 너무 긴 로어 줄 자르기
+  max-book-page-chars: 8192     # 책 페이지 과도 길이 자르기

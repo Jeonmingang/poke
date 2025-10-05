@@ -1,0 +1,25 @@
+UltimateBackpack — 1.16.5 / Java 8 ready
+========================================
+
+✅ What I changed
+- Confirmed/Set `api-version: 1.16` in `src/main/resources/plugin.yml`
+- `pom.xml` targets Java 8 and depends on `org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT` (scope `provided`).
+- No NMS/CraftBukkit versioned imports are present, so it should be cross-compatible on 1.16.5.
+
+🛠 Build (Java 8 + Maven)
+1) Install JDK 8 (1.8).
+2) Run at project root:
+   mvn -U -e -DskipTests package
+3) The plugin JAR will be at:
+   target/UltimateBackpack-1.2.0.jar  (name may vary if you change the version)
+
+📦 Install
+- Drop the built JAR into your Spigot/Paper 1.16.5 server's `plugins/` folder.
+- Start the server once to generate `plugins/UltimateBackpack/config.yml` and tweak as needed.
+
+🧪 Quick sanity checks (in-game)
+- `/가방` (aliases: /backpack, /bag, /백팩) should open the personal backpack.
+- Right-clicking the configured "티켓" item should expand backpack size if permitted.
+- Permission: `ultimatebackpack.admin` (default: op).
+
+If you build on higher Java, set Maven toolchain or change compiler target back to 1.8.
