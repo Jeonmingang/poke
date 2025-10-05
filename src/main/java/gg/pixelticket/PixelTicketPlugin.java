@@ -85,7 +85,10 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     private NamespacedKey KEY_TAG;
     private NamespacedKey HEART_KEY;
 
-    private File legendsFile;
+    
+    private NamespacedKey HEART_VER;
+    private static final int HEART_VERSION = 2;
+private File legendsFile;
     private FileConfiguration legendsCfg;
 
     private File legendNamesFile;
@@ -110,7 +113,9 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         KEY_TAG = new NamespacedKey(this, "ticket_tag");
         HEART_KEY = new NamespacedKey(this, "heart_scale");
 
-        saveResource("legendaries.yml", false);
+        
+        HEART_VER = new NamespacedKey(this, "heart_scale_ver");
+saveResource("legendaries.yml", false);
         legendsFile = new File(getDataFolder(), "legendaries.yml");
         legendsCfg = YamlConfiguration.loadConfiguration(legendsFile);
 
@@ -703,24 +708,17 @@ final int fslot = slot;
     private java.util.Map<java.util.UUID, Integer> heartSlotWaiting = new java.util.HashMap<>();
     private java.util.Map<java.util.UUID, ItemStack> heartRefund = new java.util.HashMap<>();
 
-    private boolean isHeart(ItemStack it){
-        if (it==null || !it.hasItemMeta()) return false;
-        ItemMeta m = it.getItemMeta();
-        if (m.getPersistentDataContainer().has(HEART_KEY, PersistentDataType.BYTE)) return true;
-        String dn = m.hasDisplayName()? m.getDisplayName() : "";
-        java.util.List<String> lo = m.getLore();
-        boolean nameEq = ChatColor.stripColor(dn).trim().equalsIgnoreCase(ChatColor.stripColor(color(heartName)).trim());
-        if (!nameEq) return false;
-        if ((heartLore==null || heartLore.isEmpty()) && (lo==null || lo.isEmpty())) return true;
-        if (heartLore==null || lo==null) return false;
-        if (heartLore.size()!=lo.size()) return false;
-        for (int i=0;i<heartLore.size();i++){
-            String a = ChatColor.stripColor(String.valueOf(lo.get(i))).trim();
-            String b = ChatColor.stripColor(color(String.valueOf(heartLore.get(i)))).trim();
-            if (!a.equalsIgnoreCase(b)) return false;
-        }
-        return true;
+    
+    private boolean isHeart(ItemStack item) {
+        if (item == null || item.getType() == org.bukkit.Material.AIR) return false;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return false;
+        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (!pdc.has(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE)) return false;
+        Integer ver = pdc.get(HEART_VER, org.bukkit.persistence.PersistentDataType.INTEGER);
+        return ver != null && ver == HEART_VERSION;
     }
+
 
     private void consumeOneHeart(Player p){
         ItemStack hand = p.getInventory().getItemInMainHand();
@@ -801,7 +799,8 @@ private void loadMoveAliases(){
             lore.add(org.bukkit.ChatColor.DARK_GRAY + "(우클릭 후 슬롯 또는 #기술명 입력)");
             meta.setLore(lore);
             meta.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
-            item.setItemMeta(meta);
+            
+            meta.getPersistentDataContainer().set(HEART_VER, org.bukkit.persistence.PersistentDataType.INTEGER, HEART_VERSION);item.setItemMeta(meta);
         }
         return item;
     }
