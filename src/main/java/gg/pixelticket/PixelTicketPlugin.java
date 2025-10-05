@@ -788,6 +788,7 @@ private void loadMoveAliases(){
         getLogger().warning("[PixelTicket] Failed to load moves_ko.yml: " + ex.getMessage());
     }
 
+    }
 private String translateMove(String raw){
     if (raw == null) return "";
     String m = raw.trim();
@@ -798,4 +799,3 @@ private String translateMove(String raw){
     return mapped != null ? mapped : m;
 }
 }// Java 8 / Spigot 1.16.5
-}
