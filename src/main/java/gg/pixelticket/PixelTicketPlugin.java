@@ -142,10 +142,7 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         
         if (cmd.getName().equalsIgnoreCase("하트비늘")){
             // OP-only: all heartscale commands require admin; item use remains event-driven and open to all.
-            if (!sender.hasPermission("pixelticket.admin")) {
-                sender.sendMessage(color("&c권한이 없습니다."));
-                return true;
-            }
+            if (!(args.length>0 && args[0].equalsIgnoreCase("취소")) && !sender.hasPermission("pixelticket.admin")) { sender.sendMessage(color("&c권한이 없습니다.")); return true; }
 
             if (args.length > 0 && (args[0].equalsIgnoreCase("리로드") || args[0].equalsIgnoreCase("reload"))){
                 if (!sender.hasPermission("pixelticket.admin")) { sender.sendMessage(color("&c권한이 없습니다.")); return true; }
@@ -413,6 +410,14 @@ final int fslot = slot;
         } catch (Throwable t){ return false; }
     }
     private void handleSlotAction(Player p, TicketType type, int slot){
+        // 보호: 메타몽(Ditto)에게는 특정 변경권 사용 불가
+        if (type==TicketType.RANDOM_IVS || type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 || type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
+            if (isDittoSlot(p, slot)) {
+                p.sendMessage(color("&c[안내] 메타몽(Ditto)에는 이 변경권을 사용할 수 없습니다."));
+                return;
+            }
+        }
+
         // v1~v6 변경권: Ditto(메타몽) 슬롯 보호
         if (type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 || type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
             if (isDittoSlot(p, slot)) {
