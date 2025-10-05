@@ -154,18 +154,17 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
                 return true;
             }
             if (args[0].equalsIgnoreCase("아이템")){
-                if (!(sender instanceof org.bukkit.entity.Player)) { sender.sendMessage("플레이어만 사용 가능"); return true; }
-                org.bukkit.entity.Player __p = (org.bukkit.entity.Player) sender;
-                org.bukkit.inventory.ItemStack __hand = __p.getInventory().getItemInMainHand();
-                if (__hand == null || __hand.getType() == org.bukkit.Material.AIR) { sender.sendMessage(color("&c손에 든 아이템이 없습니다.")); return true; }
-                org.bukkit.inventory.meta.ItemMeta __hm = __hand.getItemMeta();
-                if (__hm == null) { sender.sendMessage(color("&c아이템 메타가 없습니다.")); return true; }
-                __hm.setDisplayName(color(getHeartNameSafe()));
-                if (heartLore != null && !heartLore.isEmpty()) __hm.setLore(heartLore);
-                __hm.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
-                __hand.setItemMeta(__hm);
-                sender.sendMessage(color("&a하트비늘 아이템 설정 완료."));
+            if (!(sender instanceof org.bukkit.entity.Player)) {
+                sender.sendMessage("§c플레이어만 사용할 수 있습니다.");
                 return true;
+            }
+            org.bukkit.entity.Player p = (org.bukkit.entity.Player) sender;
+            org.bukkit.inventory.ItemStack held = p.getInventory().getItemInMainHand();
+            org.bukkit.inventory.ItemStack heart = createHeartItemFrom(held);
+            p.getInventory().setItemInMainHand(heart);
+            sender.sendMessage("§d[하트비늘] 손에 든 아이템을 하트비늘로 변환했습니다. (재료 포함)");
+            return true;
+    
             }
             if (args[0].equalsIgnoreCase("지급")){
                 if (args.length<3){ sender.sendMessage(color("&c사용법: /하트비늘 지급 <플레이어> <개수>")); return true; }
@@ -789,6 +788,24 @@ private void loadMoveAliases(){
     }
 
     }
+
+    private ItemStack createHeartItemFrom(ItemStack base) {
+        org.bukkit.Material type = (base != null && base.getType() != org.bukkit.Material.AIR) ? base.getType() : org.bukkit.Material.PAPER;
+        int amount = (base != null && base.getAmount() > 0) ? base.getAmount() : 1;
+        ItemStack item = new ItemStack(type, amount);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(org.bukkit.ChatColor.LIGHT_PURPLE + getHeartNameSafe());
+            java.util.List<String> lore = new java.util.ArrayList<>();
+            lore.add(org.bukkit.ChatColor.GRAY + "특수 교습권");
+            lore.add(org.bukkit.ChatColor.DARK_GRAY + "(우클릭 후 슬롯 또는 #기술명 입력)");
+            meta.setLore(lore);
+            meta.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
 private String translateMove(String raw){
     if (raw == null) return "";
     String m = raw.trim();
