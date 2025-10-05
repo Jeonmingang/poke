@@ -1,0 +1,32 @@
+# 전설 포켓몬 목록 (영문 Species, pokegive에 그대로 사용됨)
+legendaries:
+  - Mew
+  - Mewtwo
+  - Articuno
+  - Zapdos
+  - Moltres
+  - Lugia
+  - Ho-Oh
+  - Celebi
+  - Kyogre
+  - Groudon
+  - Rayquaza
+  - Latios
+  - Latias
+  - Jirachi
+  - Regirock
+  - Regice
+  - Registeel
+  - Uxie
+  - Mesprit
+  - Azelf
+  - Dialga
+  - Palkia
+  - Giratina
+  - Heatran
+  - Regigigas
+  - Cresselia
+  - Darkrai
+  - Manaphy
+  - Shaymin
+  - Arceus
