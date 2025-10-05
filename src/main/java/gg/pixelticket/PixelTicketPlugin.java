@@ -141,6 +141,12 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         
         
         if (cmd.getName().equalsIgnoreCase("하트비늘")){
+            // OP-only: all heartscale commands require admin; item use remains event-driven and open to all.
+            if (!sender.hasPermission("pixelticket.admin")) {
+                sender.sendMessage(color("&c권한이 없습니다."));
+                return true;
+            }
+
             if (args.length > 0 && (args[0].equalsIgnoreCase("리로드") || args[0].equalsIgnoreCase("reload"))){
                 if (!sender.hasPermission("pixelticket.admin")) { sender.sendMessage(color("&c권한이 없습니다.")); return true; }
                 loadMoveAliases();
