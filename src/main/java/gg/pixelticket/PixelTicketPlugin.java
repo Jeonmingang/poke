@@ -443,6 +443,27 @@ final int fslot = slot;
         } catch (Throwable t){ return false; }
     }
     private void handleSlotAction(Player p, TicketType type, int slot){
+        // V1~V6: 오롱털/메타몽/무성 검사 후 차단 시 아이템 환불
+        if (type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 ||
+            type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
+            boolean blocked = isDittoSlot(p, slot) || isGrimmsnarlSlot(p, slot) || isGenderlessSlot(p, slot);
+            if (blocked) {
+                p.sendMessage(color("&c[확정권] 해당 슬롯은 사용 불가 대상입니다. (메타몽/오롱털/무성)"));
+                // Refund 1 ticket of the same type (우클릭 시 선소모했기 때문에 돌려줌)
+                try {
+                    org.bukkit.inventory.ItemStack refund = createTicket(type, 1);
+                    java.util.Map<Integer, org.bukkit.inventory.ItemStack> left = p.getInventory().addItem(refund);
+                    if (left != null && !left.isEmpty()) {
+                        for (org.bukkit.inventory.ItemStack remain : left.values()) {
+                            if (remain == null) continue;
+                            p.getWorld().dropItemNaturally(p.getLocation(), remain);
+                        }
+                    }
+                } catch (Throwable ignored) {}
+                return;
+            }
+        }
+
         // 보호: 메타몽(Ditto)에게는 특정 변경권 사용 불가
         if (type==TicketType.RANDOM_IVS || type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 || type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
             if (isDittoSlot(p, slot)) {
@@ -676,7 +697,80 @@ final int fslot = slot;
     }
 
 
-    private boolean isDittoSlot(Player p, int slot) {
+    private 
+    boolean isGrimmsnarlSlot(Player p, int slot) {
+        // 오롱털(Grimmsnarl) 감지
+        try {
+            Class<?> proxy = Class.forName("com.pixelmonmod.pixelmon.api.storage.StorageProxy");
+            java.lang.reflect.Method getParty = proxy.getMethod("getParty", java.util.UUID.class);
+            Object party = getParty.invoke(null, p.getUniqueId());
+            if (party == null) return false;
+            java.lang.reflect.Method getMethod = party.getClass().getMethod("get", int.class);
+            Object pokemon = getMethod.invoke(party, slot - 1);
+            if (pokemon == null) return false;
+            try {
+                java.lang.reflect.Method getSpecies = pokemon.getClass().getMethod("getSpecies");
+                Object species = getSpecies.invoke(pokemon);
+                if (species != null) {
+                    String name;
+                    try {
+                        java.lang.reflect.Method nameMethod = species.getClass().getMethod("name");
+                        name = String.valueOf(nameMethod.invoke(species));
+                    } catch (NoSuchMethodException ex) {
+                        try {
+                            java.lang.reflect.Method getName = species.getClass().getMethod("getName");
+                            Object n = getName.invoke(species);
+                            name = String.valueOf(n);
+                        } catch (NoSuchMethodException ex2) {
+                            name = String.valueOf(species);
+                        }
+                    }
+                    if (name == null) return false;
+                    String low = name.toLowerCase();
+                    return low.contains("grimmsnarl") || name.contains("오롱털");
+                }
+            } catch (Throwable ignore) {}
+        } catch (Throwable t) {
+            return false;
+        }
+        return false;
+    }
+
+    boolean isGenderlessSlot(Player p, int slot) {
+        // Pixelmon Gender.GENDERLESS 감지 (가능하면)
+        try {
+            Class<?> proxy = Class.forName("com.pixelmonmod.pixelmon.api.storage.StorageProxy");
+            java.lang.reflect.Method getParty = proxy.getMethod("getParty", java.util.UUID.class);
+            Object party = getParty.invoke(null, p.getUniqueId());
+            if (party == null) return false;
+            java.lang.reflect.Method getMethod = party.getClass().getMethod("get", int.class);
+            Object pokemon = getMethod.invoke(party, slot - 1);
+            if (pokemon == null) return false;
+            try {
+                java.lang.reflect.Method getGender = pokemon.getClass().getMethod("getGender");
+                Object gender = getGender.invoke(pokemon);
+                if (gender != null) {
+                    String g;
+                    try {
+                        java.lang.reflect.Method nameMethod = gender.getClass().getMethod("name");
+                        g = String.valueOf(nameMethod.invoke(gender));
+                    } catch (NoSuchMethodException ex) {
+                        g = String.valueOf(gender);
+                    }
+                    if (g == null) return false;
+                    String low = g.toLowerCase();
+                    // Pixelmon enum likely "GENDERLESS"
+                    return low.contains("genderless") || g.contains("무성");
+                }
+            } catch (Throwable ignore) {}
+        } catch (Throwable t) {
+            return false;
+        }
+        return false;
+    }
+
+
+boolean isDittoSlot(Player p, int slot) {
         try {
             Class<?> proxy = Class.forName("com.pixelmonmod.pixelmon.api.storage.StorageProxy");
             java.lang.reflect.Method getParty = proxy.getMethod("getParty", java.util.UUID.class);
