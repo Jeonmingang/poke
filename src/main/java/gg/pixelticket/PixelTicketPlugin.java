@@ -837,31 +837,17 @@ private String translateMove(String raw){
 }
 
     // === Added safe implementations ===
-    
-    private void applyTicketMeta(org.bukkit.inventory.meta.ItemMeta meta, TicketType type){
-        if (meta == null || type == null) return;
-        // 이름: [ 소모권 ] <권 이름>
-        String prettyName = org.bukkit.ChatColor.GOLD + "[ " + org.bukkit.ChatColor.YELLOW + "소모권 " + org.bukkit.ChatColor.GOLD + "] "
-                + org.bukkit.ChatColor.WHITE + (type.displayName != null ? type.displayName : type.name());
-        try { meta.setDisplayName(prettyName); } catch (Throwable ignored) {}
-        // 로어
-        java.util.List<String> lore = new java.util.ArrayList<>();
-        lore.add(org.bukkit.ChatColor.GRAY + "픽셀몬 소모권");
-        // 두 번째 줄은 타입별 가이드(이미 색상 포함돼 있음)
-        if (type.lore1 != null && !type.lore1.isEmpty()) lore.add(type.lore1);
-        lore.add(org.bukkit.ChatColor.GRAY + "우클릭 사용 · 채팅 안내에 따르세요");
-        try { meta.setLore(lore); } catch (Throwable ignored) {}
-    }
-private void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
+    private void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
         if (item == null) return;
         org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
         org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
         if (KEY_TAG != null) pdc.set(KEY_TAG, org.bukkit.persistence.PersistentDataType.INTEGER, 1);
         if (KEY_TYPE != null) pdc.set(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING, type != null ? type.id : "UNKNOWN");
-        applyTicketMeta(meta, type);
-        item.setItemMeta(meta);
-    } catch (Throwable ignored) {}
+        // ensure visible name at least
+        if (type != null) {
+            String name = type.displayName != null ? type.displayName : type.name();
+            try { meta.setDisplayName(name); } catch (Throwable ignored) {}
         }
         item.setItemMeta(meta);
     }
