@@ -1,0 +1,21 @@
+voucher:
+  guide_colors:
+    LEG_RANDOM: "&d"
+    LEG_SELECT: "&b"
+    SHINY: "&e"
+    BIGGEST: "&a"
+    SMALLEST: "&a"
+    NEUTER: "&c"
+    NATURE_CHANGE: "&9"
+    RANDOM_IVS: "&6"
+    LEG_FORCE_SPAWN: "&d"
+    GENDER_MALE: "&b"
+    GENDER_FEMALE: "&d"
+    V1: "&6"
+    V2: "&6"
+    V3: "&6"
+    V4: "&6"
+    V5: "&6"
+    V6: "&6"
+
+  legacy_message: "&c구버전 소모권은 비활성화되었습니다. 교환소에서 신버전으로 교환하세요."
