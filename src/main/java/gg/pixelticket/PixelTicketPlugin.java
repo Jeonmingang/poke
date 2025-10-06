@@ -319,7 +319,8 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
                     runConsole("spawnlegendary " + p.getName());
                 } else {
                     if (type == TicketType.NEUTER) consumeOne(p);
-                    askSlotThen(p, type);
+                    consumeOne(p);
+                askSlotThen(p, type);
                 }
                 break;
         }
@@ -332,7 +333,20 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
     }
 
     private void askSlotThen(Player p, TicketType type){
-        p.sendMessage(color("&a채팅에 &f1~6 &a중 하나의 숫자를 입력하세요. (해당 슬롯 적용)"));
+        p.sendMessage(color("&a권이 즉시 소모되었습니다. &f1~6 &a중 하나를 선택하세요."));
+        try {
+            net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[슬롯 선택] "));
+            for (int iBtn=1;iBtn<=6;iBtn++){
+                net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+iBtn+"] ");
+                btn.setBold(true);
+                btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, String.valueOf(iBtn)));
+                btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
+                        new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
+                base.addExtra(btn);
+            }
+            p.spigot().sendMessage(base);
+        } catch (Throwable ignored) {}
+
         pending.put(p.getUniqueId(), new PendingAction(type));
     }
 
