@@ -605,7 +605,7 @@ final int fslot = slot;
         p.sendMessage(color("&6[" + n + "V권] &f슬롯 " + slot + "의 IV 적용(선택 " + n + "개=31, 나머지 랜덤)."));
     }
 
-    private void tryCommands(String... commands){
+    private void tryCommands(String commands){
         for (String c : commands) {
             try {
                 boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c);
@@ -946,7 +946,9 @@ public String getHeartNameSafe(){
 
     }
 
-    private ItemStack createHeartItemFrom(ItemStack base) {
+    
+    
+private ItemStack createHeartItemFrom(ItemStack base) {
         org.bukkit.Material type = (base != null && base.getType() != org.bukkit.Material.AIR) ? base.getType() : org.bukkit.Material.PAPER;
         int amount = (base != null && base.getAmount() > 0) ? base.getAmount() : 1;
         ItemStack item = new ItemStack(type, amount);
@@ -963,8 +965,6 @@ public String getHeartNameSafe(){
         }
         return item;
     }
-        return item;
-    }
 
 private String translateMove(String raw){
     if (raw == null) return "";
@@ -977,23 +977,22 @@ private String translateMove(String raw){
 }
 
     // === Added safe implementations ===
-    private void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
+    private 
+    void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
         if (item == null) return;
         org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
         try {
             org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            if (KEY_TAG != null) pdc.set(KEY_TAG, org.bukkit.persistence.PersistentDataType.INTEGER, 1);
+            if (KEY_TAG != null)  pdc.set(KEY_TAG,  org.bukkit.persistence.PersistentDataType.INTEGER, 1);
             if (KEY_TYPE != null) pdc.set(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING, type != null ? type.id : "UNKNOWN");
-            if (KEY_VER != null) pdc.set(KEY_VER, org.bukkit.persistence.PersistentDataType.INTEGER, TICKET_VERSION);
+            if (KEY_VER != null)  pdc.set(KEY_VER,  org.bukkit.persistence.PersistentDataType.INTEGER, TICKET_VERSION);
             item.setItemMeta(meta);
         } catch (Throwable ignored) {}
     }
-        }
-        item.setItemMeta(meta);
-    }
 
     private boolean isTicket(org.bukkit.inventory.ItemStack item){
+private boolean isTicket(org.bukkit.inventory.ItemStack item){
         if (item == null) return false;
         org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
         if (meta == null) return false;
@@ -1021,41 +1020,34 @@ private String translateMove(String raw){
         return null;
     }
 
+    
     private org.bukkit.inventory.ItemStack createTicket(TicketType type, int amount){
         org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER, Math.max(1, amount));
         org.bukkit.inventory.meta.ItemMeta meta = it.getItemMeta();
 
-        // 표시이름: §6[ 소모권 ] §f<권이름>
         String rawName = (type != null && type.displayName != null) ? org.bukkit.ChatColor.stripColor(type.displayName) : "권";
         try { meta.setDisplayName("§6[ 소모권 ] §f" + rawName); } catch (Throwable ignored) {}
 
         java.util.List<String> lore = new java.util.ArrayList<>();
-        // 로어1: §7픽셀몬 소모권
         lore.add("§7픽셀몬 소모권");
-        // 로어2: 권별 안내(색상은 config)
         String confPath = "voucher.guide_colors." + (type!=null?type.name():"DEFAULT");
         String colorCode = getConfig().getString(confPath, "&b");
         String guideText = type != null && type.lore1 != null ? org.bukkit.ChatColor.stripColor(type.lore1) : "권 사용 안내";
         lore.add(org.bukkit.ChatColor.translateAlternateColorCodes('&', colorCode) + guideText);
-        // 로어3: 고정 안내
         lore.add("§7우클릭 사용 · 채팅 안내에 따르세요");
-
         try { meta.setLore(lore); } catch (Throwable ignored) {}
         it.setItemMeta(meta);
         markAsTicket(it, type);
         return it;
     }
 
-ItemStack createTicket(TicketType type, int amount, String displayNameOverride){
+    ItemStack createTicket(TicketType type, int amount, String displayNameOverride){
         org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER, Math.max(1, amount));
         org.bukkit.inventory.meta.ItemMeta meta = it.getItemMeta();
 
-        String baseName;
-        if (displayNameOverride != null && !displayNameOverride.trim().isEmpty()) {
-            baseName = org.bukkit.ChatColor.stripColor(displayNameOverride.trim());
-        } else {
-            baseName = (type != null && type.displayName != null) ? org.bukkit.ChatColor.stripColor(type.displayName) : "권";
-        }
+        String baseName = (displayNameOverride != null && !displayNameOverride.trim().isEmpty())
+                ? org.bukkit.ChatColor.stripColor(displayNameOverride.trim())
+                : (type != null && type.displayName != null) ? org.bukkit.ChatColor.stripColor(type.displayName) : "권";
         try { meta.setDisplayName("§6[ 소모권 ] §f" + baseName); } catch (Throwable ignored) {}
 
         java.util.List<String> lore = new java.util.ArrayList<>();
@@ -1068,9 +1060,10 @@ ItemStack createTicket(TicketType type, int amount, String displayNameOverride){
         try { meta.setLore(lore); } catch (Throwable ignored) {}
 
         it.setItemMeta(meta);
-        markAsTicket(it, type); // also writes version
+        markAsTicket(it, type);
         return it;
     }
+    
 
 
     private void consumeOne(org.bukkit.entity.Player p){
