@@ -224,11 +224,16 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         }
 
         if (args.length < 3) { help(sender); return true; }
-        TicketType t = TicketType.fromKorean(args[0]);
-        if (t == null) { sender.sendMessage(color("&c권종류를 찾을 수 없습니다.")); return true; }
-        Player target = Bukkit.getPlayerExact(args[1]);
-        if (target == null) { sender.sendMessage(color("&c해당 플레이어를 찾을 수 없습니다: &f")+args[1]); return true; }
-        int amt; try { amt=Integer.parseInt(args[2]); } catch (Exception e) { sender.sendMessage(color("&c갯수는 숫자여야 합니다.")); return true; }
+TicketType t = TicketType.fromKorean(args[0]);
+if (t == null) { sender.sendMessage(color("&c권종류를 찾을 수 없습니다.")); return true; }
+Player target = Bukkit.getPlayerExact(args[1]);
+if (target == null) { sender.sendMessage(color("&c해당 플레이어를 찾을 수 없습니다: &f")+args[1]); return true; }
+String customName = String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length));
+org.bukkit.inventory.ItemStack item = createTicket(t, 1, customName);
+target.getInventory().addItem(item);
+sender.sendMessage(color("&a지급 완료: &f")+t.displayName+color(" &7→ &f")+target.getName());
+target.sendMessage(color("&d[권 지급] &f")+t.displayName+color(" &7 1개를 받았습니다."));
+return true;
         ItemStack item = createTicket(t, amt);
         target.getInventory().addItem(item);
         sender.sendMessage(color("&a지급 완료: &f")+t.displayName+color("&7 x ")+amt+color("&7 → &f")+target.getName());
@@ -237,7 +242,7 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
     }
 
     private void help(CommandSender s){
-        s.sendMessage(color("&b/지급 <권종류> <플레이어> <갯수>"));
+        s.sendMessage(color("&b/지급 <권종류> <플레이어> <이름> &7- 표시이름(§6[ 소모권 ] §f<이름>)"));
         String kinds = java.util.Arrays.stream(TicketType.values())
                 .map(t -> t.displayName)
                 .collect(java.util.stream.Collectors.joining(", "));
@@ -977,10 +982,7 @@ private String translateMove(String raw){
         org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
         if (KEY_TAG != null) pdc.set(KEY_TAG, org.bukkit.persistence.PersistentDataType.INTEGER, 1);
         if (KEY_TYPE != null) pdc.set(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING, type != null ? type.id : "UNKNOWN");
-        // ensure visible name at least
-        if (type != null) {
-            String name = type.displayName != null ? type.displayName : type.name();
-            try { meta.setDisplayName(name); } catch (Throwable ignored) {}
+        catch (Throwable ignored) {}
         }
         item.setItemMeta(meta);
     }
@@ -1037,6 +1039,33 @@ private String translateMove(String raw){
         markAsTicket(it, type);
         return it;
     }
+
+ItemStack createTicket(TicketType type, int amount, String displayNameOverride){
+        org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER, Math.max(1, amount));
+        org.bukkit.inventory.meta.ItemMeta meta = it.getItemMeta();
+
+        String baseName;
+        if (displayNameOverride != null && !displayNameOverride.trim().isEmpty()) {
+            baseName = org.bukkit.ChatColor.stripColor(displayNameOverride.trim());
+        } else {
+            baseName = (type != null && type.displayName != null) ? org.bukkit.ChatColor.stripColor(type.displayName) : "권";
+        }
+        try { meta.setDisplayName("§6[ 소모권 ] §f" + baseName); } catch (Throwable ignored) {}
+
+        java.util.List<String> lore = new java.util.ArrayList<>();
+        lore.add("§7픽셀몬 소모권");
+        String confPath = "voucher.guide_colors." + (type!=null?type.name():"DEFAULT");
+        String colorCode = getConfig().getString(confPath, "&b");
+        String guideText = type != null && type.lore1 != null ? org.bukkit.ChatColor.stripColor(type.lore1) : "권 사용 안내";
+        lore.add(org.bukkit.ChatColor.translateAlternateColorCodes('&', colorCode) + guideText);
+        lore.add("§7우클릭 사용 · 채팅 안내에 따르세요");
+        try { meta.setLore(lore); } catch (Throwable ignored) {}
+
+        it.setItemMeta(meta);
+        markAsTicket(it, type); // also writes version
+        return it;
+    }
+
 
     private void consumeOne(org.bukkit.entity.Player p){
         try {
