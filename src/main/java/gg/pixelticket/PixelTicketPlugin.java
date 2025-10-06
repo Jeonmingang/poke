@@ -210,9 +210,8 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
             if (t == null) { sender.sendMessage(color("&c권종류를 찾을 수 없습니다.")); return true; }
             Player p = (Player) sender;
             ItemStack hand = p.getInventory().getItemInMainHand();
-        // Legacy ticket block
+        // Legacy ticket notice (no event to cancel here)
         if (hand != null && hand.getType()!=Material.AIR && isLegacyTicket(hand)) {
-            e.setCancelled(true);
             String msg = getConfig().getString("voucher.legacy_message", "&c구버전 소모권은 비활성화되었습니다. 교환소에서 신버전으로 교환하세요.");
             p.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', msg));
             return;
@@ -270,9 +269,8 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         if (now - last < USE_COOLDOWN_MS) return;
         lastUseMs.put(p.getUniqueId(), now);
         ItemStack hand = p.getInventory().getItemInMainHand();
-        // Legacy ticket block
+        // Legacy ticket notice (no event to cancel here)
         if (hand != null && hand.getType()!=Material.AIR && isLegacyTicket(hand)) {
-            e.setCancelled(true);
             String msg = getConfig().getString("voucher.legacy_message", "&c구버전 소모권은 비활성화되었습니다. 교환소에서 신버전으로 교환하세요.");
             p.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', msg));
             return;
@@ -723,9 +721,8 @@ final int fslot = slot;
 
     private void consumeOneHeart(Player p){
         ItemStack hand = p.getInventory().getItemInMainHand();
-        // Legacy ticket block
+        // Legacy ticket notice (no event to cancel here)
         if (hand != null && hand.getType()!=Material.AIR && isLegacyTicket(hand)) {
-            e.setCancelled(true);
             String msg = getConfig().getString("voucher.legacy_message", "&c구버전 소모권은 비활성화되었습니다. 교환소에서 신버전으로 교환하세요.");
             p.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', msg));
             return;
@@ -936,9 +933,8 @@ private String translateMove(String raw){
     private void consumeOne(org.bukkit.entity.Player p){
         try {
             org.bukkit.inventory.ItemStack hand = p.getInventory().getItemInMainHand();
-        // Legacy ticket block
+        // Legacy ticket notice (no event to cancel here)
         if (hand != null && hand.getType()!=Material.AIR && isLegacyTicket(hand)) {
-            e.setCancelled(true);
             String msg = getConfig().getString("voucher.legacy_message", "&c구버전 소모권은 비활성화되었습니다. 교환소에서 신버전으로 교환하세요.");
             p.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', msg));
             return;
