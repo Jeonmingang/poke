@@ -845,5 +845,4 @@ private String translateMove(String raw){
     meta.setLore(lore);
     item.setItemMeta(meta);
 }
-
-
+}
