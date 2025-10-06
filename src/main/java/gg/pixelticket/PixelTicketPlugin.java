@@ -214,8 +214,8 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         if (hand != null && hand.getType()!=Material.AIR && isLegacyTicket(hand)) {
             String msg = getConfig().getString("voucher.legacy_message", "&c구버전 소모권은 비활성화되었습니다. 교환소에서 신버전으로 교환하세요.");
             p.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', msg));
-            return;
-        }
+            return true;
+}
         
             if (hand == null || hand.getType() == Material.AIR) { p.sendMessage(color("&c손에 든 아이템이 없습니다.")); return true; }
             markAsTicket(hand, t);
