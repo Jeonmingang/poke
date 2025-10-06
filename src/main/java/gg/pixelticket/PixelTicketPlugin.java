@@ -434,16 +434,14 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" shiny:true",
                         "pokeedit "+p.getName()+" "+slot+" s:1"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬을 이로치로 변경 시도."));
+p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬을 이로치로 변경 시도."));
                 break;
             case NATURE_CHANGE:
                 {
                     String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","quiet","quirky","rash","relaxed","sassy","serious","timid"};
                     String nat = natures[new java.util.Random().nextInt(natures.length)];
                     runConsole("minecraft:pokeedit " + p.getName() + " " + slot + " nature:" + nat);
-                    consumeOne(p);
-                    p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
+p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
                     break;
                 }
 
@@ -453,8 +451,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" growth:Ginormous",
                         "pokeedit "+p.getName()+" "+slot+" growth:ginormous"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&a[가장큼권] &f슬롯 "+slot+" 크기를 Ginormous로 변경 시도."));
+p.sendMessage(color("&a[가장큼권] &f슬롯 "+slot+" 크기를 Ginormous로 변경 시도."));
                 break;
             case SMALLEST:
                 tryCommands(
@@ -462,8 +459,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" growth:Microscopic",
                         "pokeedit "+p.getName()+" "+slot+" growth:microscopic"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&a[가장작음권] &f슬롯 "+slot+" 크기를 Microscopic으로 변경 시도."));
+p.sendMessage(color("&a[가장작음권] &f슬롯 "+slot+" 크기를 Microscopic으로 변경 시도."));
                 break;
             case NEUTER:
                 tryCommands(
@@ -480,8 +476,7 @@ final int fslot = slot;
                         String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspd:%d", p.getName(), slot, hp, atk, def, spa, spd, spe),
                         String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspeed:%d", p.getName(), slot, hp, atk, def, spa, spd, spe)
                 );
-                consumeOne(p);
-                p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV 전부 랜덤화 시도."));
+p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV 전부 랜덤화 시도."));
                 break;
             case GENDER_MALE:
                 tryCommands(
@@ -489,8 +484,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" g:male",
                         "pokeedit "+p.getName()+" "+slot+" sex:male"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 수컷으로 변경 시도."));
+p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 수컷으로 변경 시도."));
                 break;
             case GENDER_FEMALE:
                 tryCommands(
@@ -498,8 +492,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" g:female",
                         "pokeedit "+p.getName()+" "+slot+" sex:female"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 암컷으로 변경 시도."));
+p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 암컷으로 변경 시도."));
                 break;
             case V1: case V2: case V3: case V4: case V5: case V6:
                 int n = Integer.parseInt(type.name().substring(1));
@@ -510,7 +503,10 @@ final int fslot = slot;
             case LEG_RANDOM:
                 break;
         }
-    }
+        // 모든 권은 슬롯 선택 후 1회 소모
+    consumeOne(p);
+}
+
 
     // N개=31, 나머지=랜덤(0~31)
     private void applyVIV(Player p, int slot, int n){
@@ -838,75 +834,16 @@ private String translateMove(String raw){
 
     // === Added safe implementations ===
     private void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
-        if (item == null) return;
-        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-        if (meta == null) return;
-        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        if (KEY_TAG != null) pdc.set(KEY_TAG, org.bukkit.persistence.PersistentDataType.INTEGER, 1);
-        if (KEY_TYPE != null) pdc.set(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING, type != null ? type.id : "UNKNOWN");
-        // ensure visible name at least
-        if (type != null) {
-            String name = type.displayName != null ? type.displayName : type.name();
-            try { meta.setDisplayName(name); } catch (Throwable ignored) {}
-        }
-        item.setItemMeta(meta);
-    }
-
-    private boolean isTicket(org.bukkit.inventory.ItemStack item){
-        if (item == null) return false;
-        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-        if (meta == null) return false;
-        try {
-            org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            if (KEY_TYPE != null) {
-                String id = pdc.get(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING);
-                return id != null && !id.isEmpty();
-            }
-        } catch (Throwable ignored) {}
-        return false;
-    }
-
-    private TicketType getType(org.bukkit.inventory.ItemStack item){
-        if (item == null) return null;
-        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-        if (meta == null) return null;
-        try {
-            org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            if (KEY_TYPE != null) {
-                String id = pdc.get(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING);
-                if (id != null) return TicketType.fromKorean(id);
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    private org.bukkit.inventory.ItemStack createTicket(TicketType type, int amount){
-        // Heart scale는 별도 명령으로 처리하고, 여기서는 일반 티켓 기본 생성
-        org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(org.bukkit.Material.PAPER, Math.max(1, amount));
-        org.bukkit.inventory.meta.ItemMeta meta = it.getItemMeta();
-        String name = type != null && type.displayName != null ? type.displayName : "권";
-        try { meta.setDisplayName(name); } catch (Throwable ignored) {}
-        java.util.List<String> lore = new java.util.ArrayList<>();
-        if (type != null && type.displayName != null) lore.add(type.displayName);
-        lore.add(org.bukkit.ChatColor.GRAY + "우클릭해서 사용");
-        try { meta.setLore(lore); } catch (Throwable ignored) {}
-        it.setItemMeta(meta);
-        markAsTicket(it, type);
-        return it;
-    }
-
-    private void consumeOne(org.bukkit.entity.Player p){
-        try {
-            org.bukkit.inventory.ItemStack hand = p.getInventory().getItemInMainHand();
-            if (hand == null || hand.getType() == org.bukkit.Material.AIR) return;
-            if (!isTicket(hand)) return;
-            int amt = hand.getAmount();
-            if (amt <= 1) {
-                p.getInventory().setItemInMainHand(new org.bukkit.inventory.ItemStack(org.bukkit.Material.AIR));
-            } else {
-                hand.setAmount(amt - 1);
-            }
-        } catch (Throwable ignored) {}
-    }
-
+    if (item == null) return;
+    org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+    if (meta == null) return;
+    meta.setDisplayName(org.bukkit.ChatColor.GOLD + "[ 소모권 ] " + org.bukkit.ChatColor.YELLOW + type.displayName);
+    java.util.List<String> lore = new java.util.ArrayList<>();
+    lore.add(org.bukkit.ChatColor.GRAY + "픽셀몬 소모권");
+    lore.add(org.bukkit.ChatColor.YELLOW + "권별 안내");
+    lore.add(org.bukkit.ChatColor.GRAY + "우클릭 사용 · 채팅 안내에 따르세요");
+    meta.setLore(lore);
+    item.setItemMeta(meta);
 }
+
+
