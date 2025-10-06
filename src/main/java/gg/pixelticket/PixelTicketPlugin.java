@@ -228,7 +228,7 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
 
     private void help(CommandSender s){
         s.sendMessage(color("&b/지급 <권종류> <플레이어> <갯수>"));
-        s.sendMessage(color("&7권종류: &f전설랜덤권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권, 전설소환권, 성별변경권(수컷), 성별변경권(암컷), v1, v2, v3, v4, v5, v6"));
+        s.sendMessage(color("&7권종류: &f전설랜덤권, 전설선택권, 이로치권, 가장큼권, 가장작음권, 중성화권, 랜덤개체값권, 전설소환권, 성별변경권(수컷), 성별변경권(암컷), v1, v2, v3, v4, v5, v6")); &7| &d성격변경권 &7| &f기존권" );
         s.sendMessage(color("&b/지급 설정 <권종류> &7- 손에 든 아이템을 해당 권으로 태그"));
         s.sendMessage(color("&b/지급 테스트 &7- 플러그인 자체 점검"));
     }
@@ -833,6 +833,99 @@ private String translateMove(String raw){
 }
 
     // === Added safe implementations ===
+    // === Added: core ticket helpers to satisfy createTicket/isTicket/getType/consumeOne ===
+    private ItemStack createTicket(TicketType type, int amount) {
+        if (amount <= 0) amount = 1;
+        ItemStack it = new ItemStack(Material.PAPER, amount);
+        ItemMeta meta = it.getItemMeta();
+        if (meta == null) return it;
+
+        // Uniform name + lore
+        meta.setDisplayName(color("&6[ 소모권 ] &e" + type.getDisplayName()));
+        List<String> lore = new ArrayList<>();
+        lore.add(color("&7픽셀몬 소모권"));
+        lore.add(color("&e권별 안내"));
+        lore.add(color("&7우클릭 사용 · 채팅 안내에 따르세요"));
+        meta.setLore(lore);
+
+        // Persistent marks
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(KEY_TAG, PersistentDataType.STRING, "TICKET");
+        pdc.set(KEY_TYPE, PersistentDataType.STRING, type.name());
+
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    private boolean isTicket(ItemStack it) {
+        if (it == null || it.getType() == Material.AIR) return false;
+        ItemMeta meta = it.getItemMeta();
+        if (meta == null) return false;
+
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (pdc.has(KEY_TYPE, PersistentDataType.STRING)) {
+            return true;
+        }
+        // Fallback by display name
+        if (meta.hasDisplayName()) {
+            String dn = ChatColor.stripColor(meta.getDisplayName());
+            return dn != null && dn.startsWith("[ 소모권 ] ");
+        }
+        return false;
+    }
+
+    private TicketType getType(ItemStack it) {
+        if (it == null) return null;
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            String typeName = pdc.get(KEY_TYPE, PersistentDataType.STRING);
+            if (typeName != null) {
+                try {
+                    return TicketType.valueOf(typeName);
+                } catch (IllegalArgumentException ignored) {}
+            }
+            if (meta.hasDisplayName()) {
+                String dn = ChatColor.stripColor(meta.getDisplayName());
+                if (dn != null && dn.startsWith("[ 소모권 ] ")) {
+                    String namePart = dn.substring("[ 소모권 ] ".length()).trim();
+                    for (TicketType t : TicketType.values()) {
+                        if (t.getDisplayName().equalsIgnoreCase(namePart)) return t;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private void consumeOne(Player p) {
+        if (p == null) return;
+        // Prefer main hand
+        ItemStack hand = p.getInventory().getItemInMainHand();
+        if (isTicket(hand)) {
+            int amt = hand.getAmount();
+            if (amt <= 1) {
+                p.getInventory().setItemInMainHand(null);
+            } else {
+                hand.setAmount(amt - 1);
+                p.getInventory().setItemInMainHand(hand);
+            }
+            p.updateInventory();
+            return;
+        }
+        // Fallback: scan hotbar 0-8
+        for (int i = 0; i < 9; i++) {
+            ItemStack s = p.getInventory().getItem(i);
+            if (isTicket(s)) {
+                int amt = s.getAmount();
+                if (amt <= 1) p.getInventory().setItem(i, null);
+                else { s.setAmount(amt - 1); p.getInventory().setItem(i, s); }
+                p.updateInventory();
+                return;
+            }
+        }
+    }
+    // === end added helpers ===
     private void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
     if (item == null) return;
     org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
