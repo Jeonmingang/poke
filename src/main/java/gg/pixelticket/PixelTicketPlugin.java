@@ -958,9 +958,11 @@ public String getHeartNameSafe(){
             lore.add(org.bukkit.ChatColor.DARK_GRAY + "(우클릭 후 슬롯 또는 #기술명 입력)");
             meta.setLore(lore);
             meta.getPersistentDataContainer().set(HEART_KEY, org.bukkit.persistence.PersistentDataType.BYTE, (byte)1);
-            
-            meta.getPersistentDataContainer().set(HEART_VER, org.bukkit.persistence.PersistentDataType.INTEGER, HEART_VERSION);item.setItemMeta(meta);
+            meta.getPersistentDataContainer().set(HEART_VER, org.bukkit.persistence.PersistentDataType.INTEGER, HEART_VERSION);
+            item.setItemMeta(meta);
         }
+        return item;
+    }
         return item;
     }
 
@@ -979,10 +981,14 @@ private String translateMove(String raw){
         if (item == null) return;
         org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
-        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        if (KEY_TAG != null) pdc.set(KEY_TAG, org.bukkit.persistence.PersistentDataType.INTEGER, 1);
-        if (KEY_TYPE != null) pdc.set(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING, type != null ? type.id : "UNKNOWN");
-        catch (Throwable ignored) {}
+        try {
+            org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (KEY_TAG != null) pdc.set(KEY_TAG, org.bukkit.persistence.PersistentDataType.INTEGER, 1);
+            if (KEY_TYPE != null) pdc.set(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING, type != null ? type.id : "UNKNOWN");
+            if (KEY_VER != null) pdc.set(KEY_VER, org.bukkit.persistence.PersistentDataType.INTEGER, TICKET_VERSION);
+            item.setItemMeta(meta);
+        } catch (Throwable ignored) {}
+    }
         }
         item.setItemMeta(meta);
     }
