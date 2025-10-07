@@ -973,7 +973,6 @@ private String translateMove(String raw){
 }
 
     // === Added safe implementations ===
-    private 
     
     private static final String VOUCHER_PREFIX = "§6[ 소모권 ] §f";
 
