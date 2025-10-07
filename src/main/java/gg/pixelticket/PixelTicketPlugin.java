@@ -229,16 +229,11 @@ if (t == null) { sender.sendMessage(color("&c권종류를 찾을 수 없습니�
 Player target = Bukkit.getPlayerExact(args[1]);
 if (target == null) { sender.sendMessage(color("&c해당 플레이어를 찾을 수 없습니다: &f")+args[1]); return true; }
 String customName = String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length));
-org.bukkit.inventory.ItemStack item = createTicket(t, 1, customName);
-target.getInventory().addItem(item);
+org.bukkit.inventory.ItemStack ticket = createTicket(t, 1, customName);
+target.getInventory().addItem(ticket);
 sender.sendMessage(color("&a지급 완료: &f")+t.displayName+color(" &7→ &f")+target.getName());
 target.sendMessage(color("&d[권 지급] &f")+t.displayName+color(" &7 1개를 받았습니다."));
 return true;
-        ItemStack item = createTicket(t, amt);
-        target.getInventory().addItem(item);
-        sender.sendMessage(color("&a지급 완료: &f")+t.displayName+color("&7 x ")+amt+color("&7 → &f")+target.getName());
-        target.sendMessage(color("&d[권 지급] &f")+t.displayName+color("&7 x ")+amt+color(" &7을 받았습니다."));
-        return true;
     }
 
     private void help(CommandSender s){
@@ -605,7 +600,7 @@ final int fslot = slot;
         p.sendMessage(color("&6[" + n + "V권] &f슬롯 " + slot + "의 IV 적용(선택 " + n + "개=31, 나머지 랜덤)."));
     }
 
-    private void tryCommands(String commands){
+    private void tryCommands(String... commands){
         for (String c : commands) {
             try {
                 boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c);
