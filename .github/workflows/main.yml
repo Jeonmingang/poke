@@ -18,5 +18,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PixelTicket-jar
-          path: target/PixelTicket-1.2.6.jar
+          path: target/PixelTicket-1.2.7.jar
           if-no-files-found: error
