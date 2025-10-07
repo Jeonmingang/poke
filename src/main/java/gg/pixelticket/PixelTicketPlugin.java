@@ -992,7 +992,6 @@ private String translateMove(String raw){
     }
 
     private boolean isTicket(org.bukkit.inventory.ItemStack item){
-private boolean isTicket(org.bukkit.inventory.ItemStack item){
         if (item == null) return false;
         org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
         if (meta == null) return false;
