@@ -292,6 +292,7 @@ return true;
 
         
         if (!isTicket(hand)) return;
+        try { normalizeVoucherMeta(hand, getType(hand), null); } catch (Throwable ignored) {}
         // (cancel removed in non-event context)
         TicketType type = getType(hand);
         if (type==null) return;
@@ -973,7 +974,33 @@ private String translateMove(String raw){
 
     // === Added safe implementations ===
     private 
-    void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
+    
+    private static final String VOUCHER_PREFIX = "§6[ 소모권 ] §f";
+
+    private void normalizeVoucherMeta(org.bukkit.inventory.ItemStack it, TicketType type, String override){
+        if (it == null) return;
+        org.bukkit.inventory.meta.ItemMeta meta = it.getItemMeta();
+        if (meta == null) return;
+        String base = (override != null && !override.trim().isEmpty())
+                ? org.bukkit.ChatColor.stripColor(override.trim())
+                : (type != null ? org.bukkit.ChatColor.stripColor(type.displayName) : "권");
+        String name = VOUCHER_PREFIX + base;
+        try {
+            if (!meta.hasDisplayName() || !String.valueOf(meta.getDisplayName()).startsWith(VOUCHER_PREFIX)) {
+                meta.setDisplayName(name);
+            }
+            java.util.List<String> lore = new java.util.ArrayList<>();
+            lore.add("§7픽셀몬 소모권");
+            String confPath = "voucher.guide_colors." + (type!=null?type.name():"DEFAULT");
+            String colorCode = getConfig().getString(confPath, "&b");
+            String guideText = type != null && type.lore1 != null ? org.bukkit.ChatColor.stripColor(type.lore1) : "권 사용 안내";
+            lore.add(org.bukkit.ChatColor.translateAlternateColorCodes('&', colorCode) + guideText);
+            lore.add("§7우클릭 사용 · 채팅 안내에 따르세요");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        } catch (Throwable ignored) {}
+    }
+void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
         if (item == null) return;
         org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
@@ -1031,6 +1058,7 @@ private String translateMove(String raw){
         lore.add("§7우클릭 사용 · 채팅 안내에 따르세요");
         try { meta.setLore(lore); } catch (Throwable ignored) {}
         it.setItemMeta(meta);
+        normalizeVoucherMeta(it, type, null);
         markAsTicket(it, type);
         return it;
     }
@@ -1054,6 +1082,7 @@ private String translateMove(String raw){
         try { meta.setLore(lore); } catch (Throwable ignored) {}
 
         it.setItemMeta(meta);
+        normalizeVoucherMeta(it, type, displayNameOverride);
         markAsTicket(it, type);
         return it;
     }
