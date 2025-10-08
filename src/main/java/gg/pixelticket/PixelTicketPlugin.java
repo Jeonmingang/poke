@@ -319,7 +319,6 @@ return true;
                     consumeOne(p);
                     runConsole("spawnlegendary " + p.getName());
                 } else {
-                    if (type == TicketType.NEUTER) consumeOne(p);
                     consumeOne(p);
                 askSlotThen(p, type);
                 }
@@ -1057,6 +1056,17 @@ void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
         lore.add("§7우클릭 사용 · 채팅 안내에 따르세요");
         try { meta.setLore(lore); } catch (Throwable ignored) {}
         it.setItemMeta(meta);
+        // ensure enchanted glint on paper
+        try {
+            if (it.getType() != org.bukkit.Material.PAPER) it.setType(org.bukkit.Material.PAPER);
+            org.bukkit.inventory.meta.ItemMeta _m = it.getItemMeta();
+            if (_m != null) {
+                try { _m.addEnchant(org.bukkit.enchantments.Enchantment.LUCK, 1, true); } catch (Throwable ignored) {}
+                try { _m.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS); } catch (Throwable ignored) {}
+                it.setItemMeta(_m);
+            }
+        } catch (Throwable ignored) {}
+    
         normalizeVoucherMeta(it, type, null);
         markAsTicket(it, type);
         return it;
@@ -1081,6 +1091,17 @@ void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
         try { meta.setLore(lore); } catch (Throwable ignored) {}
 
         it.setItemMeta(meta);
+        // ensure enchanted glint on paper
+        try {
+            if (it.getType() != org.bukkit.Material.PAPER) it.setType(org.bukkit.Material.PAPER);
+            org.bukkit.inventory.meta.ItemMeta _m = it.getItemMeta();
+            if (_m != null) {
+                try { _m.addEnchant(org.bukkit.enchantments.Enchantment.LUCK, 1, true); } catch (Throwable ignored) {}
+                try { _m.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS); } catch (Throwable ignored) {}
+                it.setItemMeta(_m);
+            }
+        } catch (Throwable ignored) {}
+    
         normalizeVoucherMeta(it, type, displayNameOverride);
         markAsTicket(it, type);
         return it;
