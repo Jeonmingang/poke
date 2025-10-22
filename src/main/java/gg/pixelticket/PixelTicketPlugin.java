@@ -47,6 +47,8 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         NEUTER("중성화권", ChatColor.RED + "채팅에 슬롯 입력 + 번식 불가", "NEUTER", true),
         NATURE_CHANGE("성격변경권", ChatColor.LIGHT_PURPLE + "채팅에 슬롯 입력 + 성격 랜덤 변경", "NATURE_CHANGE", true),
         RANDOM_IVS("랜덤개체값권", ChatColor.GOLD + "채팅에 슬롯 입력 + IV 전부 랜덤", "RANDOM_IVS", true),
+        IV_LOCK_RANDOM("개체값고정랜덤", ChatColor.GOLD + "채팅에 슬롯 입력 → [스탯] 선택 → 해당 스탯만 랜덤", "IV_LOCK_RANDOM", true),
+        IV_LOCK_MAX("개체값고정최대", ChatColor.GOLD + "채팅에 슬롯 입력 → [스탯] 선택 → 해당 스탯만 31", "IV_LOCK_MAX", true),
         LEG_FORCE_SPAWN("전설소환권", ChatColor.LIGHT_PURPLE + "우클릭 즉시 전설 소환", "LEG_FORCE_SPAWN", false),
         GENDER_MALE("성별변경권(수컷)", ChatColor.AQUA + "채팅에 슬롯 입력 + 수컷으로 변경", "GENDER_MALE", true),
         GENDER_FEMALE("성별변경권(암컷)", ChatColor.AQUA + "채팅에 슬롯 입력 + 암컷으로 변경", "GENDER_FEMALE", true),
@@ -101,6 +103,9 @@ private File legendsFile;
     private static final long USE_COOLDOWN_MS = 350;
 
     static class PendingAction { final TicketType type; PendingAction(TicketType t){ this.type=t; } }
+
+    static class IvPending { final TicketType type; final int slot; IvPending(TicketType t,int s){this.type=t;this.slot=s;} }
+    private final java.util.Map<java.util.UUID, IvPending> ivLockWaiting = new java.util.HashMap<>();
 
     @Override
     public void onEnable(){
@@ -298,6 +303,27 @@ return true;
         if (type==null) return;
 
         switch (type){
+            case IV_LOCK_RANDOM:
+            case IV_LOCK_MAX: {
+                // Ask stat via clickable chat
+                try {
+                    net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
+                    String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
+                    for (String lab : labels){
+                        net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+lab+"] ");
+                        btn.setBold(true);
+                        btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, lab));
+                        btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
+                                new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
+                        base.addExtra(btn);
+                    }
+                    p.spigot().sendMessage(base);
+                } catch (Throwable ignored) {}
+                ivLockWaiting.put(p.getUniqueId(), new IvPending(type, slot));
+                p.sendMessage(color("&f원하는 스탯 이름을 클릭하거나 입력하세요. &7(취소: 취소)"));
+                return;
+            }
+
             case LEG_RANDOM:
                 String species = pickRandomLegend();
                 runConsole("pokegive "+p.getName()+" "+species);
@@ -312,6 +338,7 @@ return true;
             case SHINY: case BIGGEST: case SMALLEST: case NEUTER:
             case NATURE_CHANGE:
             case RANDOM_IVS:
+            case IV_LOCK_RANDOM: case IV_LOCK_MAX:
             case GENDER_MALE: case GENDER_FEMALE:
             case V1: case V2: case V3: case V4: case V5: case V6:
             case LEG_FORCE_SPAWN:
@@ -421,6 +448,46 @@ return true;
                 return;
             }
         }
+
+        // 개체값고정 스탯 선택 대기 처리
+        if (ivLockWaiting.containsKey(p.getUniqueId())){
+            String msg = ChatColor.stripColor(e.getMessage().trim());
+            if (msg.equalsIgnoreCase("취소")){
+                ivLockWaiting.remove(p.getUniqueId());
+                p.sendMessage(color("&7작업을 취소했습니다."));
+                e.setCancelled(true);
+                return;
+            }
+            IvPending ivp = ivLockWaiting.get(p.getUniqueId());
+            String key = null; String pretty = null;
+            if (msg.equalsIgnoreCase("체력")){ key = "ivhp"; pretty="체력"; }
+            else if (msg.equalsIgnoreCase("공격")){ key = "ivatk"; pretty="공격"; }
+            else if (msg.equalsIgnoreCase("방어")){ key = "ivdef"; pretty="방어"; }
+            else if (msg.equalsIgnoreCase("특수공격")){ key = "ivspa"; pretty="특수공격"; }
+            else if (msg.equalsIgnoreCase("특수방어")){ key = "ivspd"; pretty="특수방어"; }
+            else if (msg.equalsIgnoreCase("스피드")){ key = "ivspe"; pretty="스피드"; }
+            if (key == null){
+                p.sendMessage(color("&c[안내] 체력/공격/방어/특수공격/특수방어/스피드 중에서 선택하세요."));
+                e.setCancelled(true);
+                return;
+            }
+            int val = 31;
+            if (ivp.type == TicketType.IV_LOCK_RANDOM){
+                java.util.Random r = new java.util.Random();
+                val = r.nextInt(32);
+            }
+            // Try multiple key variants for speed
+            tryCommands(String.format("pokeedit %s %d %s:%d", p.getName(), ivp.slot, key, val));
+            if (key.equals("ivspe")){
+                tryCommands(String.format("pokeedit %s %d ivspeed:%d", p.getName(), ivp.slot, val));
+            }
+            consumeOne(p);
+            p.sendMessage(color((ivp.type==TicketType.IV_LOCK_MAX? "&6[개체값고정최대] ":"&6[개체값고정랜덤] ")
+                    + "&f슬롯 "+ivp.slot+" &e"+pretty+"&f만 " + (ivp.type==TicketType.IV_LOCK_MAX? "31":"랜덤("+val+")") + " 으로 변경 시도."));
+            ivLockWaiting.remove(p.getUniqueId());
+            e.setCancelled(true);
+            return;
+        }
 if (!pending.containsKey(u)) return;
         // (cancel removed in non-event context)
         String msg = e.getMessage().trim();
@@ -482,6 +549,27 @@ final int fslot = slot;
         }
 
         switch (type){
+            case IV_LOCK_RANDOM:
+            case IV_LOCK_MAX: {
+                // Ask stat via clickable chat
+                try {
+                    net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
+                    String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
+                    for (String lab : labels){
+                        net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+lab+"] ");
+                        btn.setBold(true);
+                        btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, lab));
+                        btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
+                                new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
+                        base.addExtra(btn);
+                    }
+                    p.spigot().sendMessage(base);
+                } catch (Throwable ignored) {}
+                ivLockWaiting.put(p.getUniqueId(), new IvPending(type, slot));
+                p.sendMessage(color("&f원하는 스탯 이름을 클릭하거나 입력하세요. &7(취소: 취소)"));
+                return;
+            }
+
             case SHINY:
                 tryCommands(
                         "pokeedit "+p.getName()+" "+slot+" shiny",
