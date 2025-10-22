@@ -303,27 +303,6 @@ return true;
         if (type==null) return;
 
         switch (type){
-            case IV_LOCK_RANDOM:
-            case IV_LOCK_MAX: {
-                // Ask stat via clickable chat
-                try {
-                    net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
-                    String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
-                    for (String lab : labels){
-                        net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+lab+"] ");
-                        btn.setBold(true);
-                        btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, lab));
-                        btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
-                                new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
-                        base.addExtra(btn);
-                    }
-                    p.spigot().sendMessage(base);
-                } catch (Throwable ignored) {}
-                ivLockWaiting.put(p.getUniqueId(), new IvPending(type, slot));
-                p.sendMessage(color("&f원하는 스탯 이름을 클릭하거나 입력하세요. &7(취소: 취소)"));
-                return;
-            }
-
             case LEG_RANDOM:
                 String species = pickRandomLegend();
                 runConsole("pokegive "+p.getName()+" "+species);
