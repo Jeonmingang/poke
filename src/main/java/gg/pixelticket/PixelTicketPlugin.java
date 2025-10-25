@@ -64,7 +64,6 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         V6("V6 확정권", ChatColor.GOLD + "채팅에 슬롯 입력 + 6개 IV 전부 31", "V6", true),
         ;
         
-
         public final String displayName;
         public final String lore1;
         public final String id;
@@ -77,40 +76,25 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
             this.showHint = showHint;
         }
 
-        public 
+        static TicketType fromKorean(String s) {
+            if (s == null) return null;
+            String raw = s.trim();
+            String norm = raw.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
 
-static TicketType fromKorean(String s) {
-    if (s == null) return null;
-    String raw = s.trim();
-    String norm = raw.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
-    // 특성패치: 공백 허용하지 않음 (정확히 '특성패치'만)
-    if (norm.equals("특성패치") && !raw.equalsIgnoreCase("특성패치")) {
-        return null;
-    }
-    for (TicketType t : values()) {
-        String dn = t.displayName == null ? "" : t.displayName.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
-        String idn = t.id == null ? "" : t.id.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
-        // ABILITY_PATCH는 위에서 raw 검사로만 허용되므로 여기선 제외 로직
-        if (t == ABILITY_PATCH) {
-            if (raw.equalsIgnoreCase("특성패치")) return ABILITY_PATCH;
-            // "특성 패치" 등 공백 포함형은 허용하지 않음
-        } else {
-            if (dn.equals(norm) || idn.equals(norm) || t.name().equalsIgnoreCase(raw)) return t;
-        }
-    }
-    // 추가 별칭을 넣고 싶으면 아래에 개별적으로 추가 가능 (현재 없음)
-    return null;
-}
-// also handle common aliases
-    if (norm.equals("특성패치") || norm.equals("특성패치권")) return ABILITY_PATCH;
-    if (norm.equals("성격변경권확정") || norm.equals("성격변경권(확정)")) return NATURE_FIX;
-    return null;
-}
-}
+            for (TicketType t : values()) {
+                String dn = t.displayName == null ? "" : t.displayName.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
+                String idn = t.id == null ? "" : t.id.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
+                if (t == ABILITY_PATCH) {
+                    // ABILITY_PATCH는 정확히 '특성패치'만 허용 (공백 불가)
+                    if (raw.equalsIgnoreCase("특성패치")) return ABILITY_PATCH;
+                } else {
+                    if (dn.equals(norm) || idn.equals(norm) || t.name().equalsIgnoreCase(raw)) return t;
+                }
+            }
             return null;
         }
+    
     }
-
     private NamespacedKey KEY_TYPE;
     private NamespacedKey KEY_TAG;
     private NamespacedKey KEY_VER;
