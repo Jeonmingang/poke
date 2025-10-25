@@ -38,6 +38,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     private final java.util.Map<String,String> moveAlias = new java.util.HashMap<>();
     private final java.util.Map<String,String> natureAlias = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID,Integer> natureSlotWaiting = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, org.bukkit.inventory.ItemStack> voucherRefund = new java.util.HashMap<>();
 
 
     public enum TicketType {
@@ -384,21 +385,16 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
 
             case SHINY: case BIGGEST: case SMALLEST: case NEUTER:
             case NATURE_CHANGE:
-            case RANDOM_IVS:
-            case IV_LOCK_RANDOM: case IV_LOCK_MAX:
-            case GENDER_MALE: case GENDER_FEMALE:
-            case V1: case V2: case V3: case V4: case V5: case V6:
-            case NATURE_FIX: case ABILITY_PATCH:
-            case LEG_FORCE_SPAWN:
-                if (type == TicketType.LEG_FORCE_SPAWN) {
-                    consumeOne(p);
-                    runConsole("spawnlegendary " + p.getName());
-                } else {
-                    consumeOne(p);
-                askSlotThen(p, type);
+                {
+                    String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
+                    String nat = natures[new java.util.Random().nextInt(natures.length)];
+                    tryCommands(
+                            "pokeedit "+p.getName()+" "+slot+" n:"+nat,
+                            "pokeedit "+p.getName()+" "+slot+" nature:"+nat
+                    );
+                    p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
+                    break;
                 }
-                break;
-        }
     }
 
     private String pickRandomLegend(){
@@ -419,6 +415,13 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
                         new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
                 base.addExtra(btn);
             }
+            // 취소 버튼 추가
+            net.md_5.bungee.api.chat.TextComponent cancel = new net.md_5.bungee.api.chat.TextComponent(color("&c[취소]"));
+            cancel.setBold(true);
+            cancel.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, "취소"));
+            cancel.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
+                    new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭하면 취소합니다")).create()));
+            base.addExtra(cancel);
             p.spigot().sendMessage(base);
         } catch (Throwable ignored) {}
 
@@ -530,7 +533,9 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
             String msg = ChatColor.stripColor(e.getMessage().trim());
             if (msg.equalsIgnoreCase("취소")){
                 ivLockWaiting.remove(p.getUniqueId());
-                p.sendMessage(color("&7작업을 취소했습니다."));
+                org.bukkit.inventory.ItemStack _refund = voucherRefund.remove(p.getUniqueId());
+                if (_refund != null) p.getInventory().addItem(_refund);
+                p.sendMessage(color("&7작업을 취소하고 &a소모권을 반환했습니다."));
                 e.setCancelled(true);
                 return;
             }
@@ -565,12 +570,20 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
             return;
         }
 if (!pending.containsKey(u)) return;
-        // (cancel removed in non-event context)
         String msg = e.getMessage().trim();
+        if (msg.equalsIgnoreCase("취소")){
+            pending.remove(u);
+            org.bukkit.inventory.ItemStack _refund = voucherRefund.remove(u);
+            if (_refund != null) p.getInventory().addItem(_refund);
+            p.sendMessage(color("&7작업을 취소하고 &a소모권을 반환했습니다."));
+            return;
+        }
+        // (cancel removed in non-event context)
         int slot;
         try { slot = Integer.parseInt(msg); } catch (Exception ex) { e.getPlayer().sendMessage(color("&c숫자(1~6)를 입력하세요.")); return; }
         if (slot<1 || slot>6) { e.getPlayer().sendMessage(color("&c슬롯은 1~6 범위여야 합니다.")); return; }
         PendingAction pa = pending.remove(u);
+        voucherRefund.remove(u);
         p =  e.getPlayer();
 final Player fp = p;
 final PendingAction fpa = pa;
