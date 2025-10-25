@@ -598,7 +598,7 @@ final int fslot = slot;
                 break;
             case NATURE_CHANGE:
                 {
-                    String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","quiet","quirky","rash","relaxed","sassy","serious","timid"};
+                    String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
                     String nat = natures[new java.util.Random().nextInt(natures.length)];
                     runConsole("minecraft:pokeedit " + p.getName() + " " + slot + " nature:" + nat);
                     consumeOne(p);
