@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
 
 public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
     private final java.util.Map<String,String> moveAlias = new java.util.HashMap<>();
+    private final java.util.Map<String,String> natureAlias = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID,Integer> natureSlotWaiting = new java.util.HashMap<>();
 
 
     public enum TicketType {
@@ -46,6 +48,8 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         SMALLEST("가장작음권", ChatColor.GREEN + "채팅에 슬롯 입력 + 크기 Microscopic", "SMALLEST", true),
         NEUTER("중성화권", ChatColor.RED + "채팅에 슬롯 입력 + 번식 불가", "NEUTER", true),
         NATURE_CHANGE("성격변경권", ChatColor.LIGHT_PURPLE + "채팅에 슬롯 입력 + 성격 랜덤 변경", "NATURE_CHANGE", true),
+        NATURE_FIX("성격변경권(확정)", ChatColor.LIGHT_PURPLE + "채팅: 슬롯 선택 후 #성격 입력 → 해당 성격으로 변경", "NATURE_FIX", true),
+        ABILITY_PATCH("특성 패치", ChatColor.AQUA + "채팅에 슬롯 입력 + 드림특성 적용 & 교환/교배 불가", "ABILITY_PATCH", true),
         RANDOM_IVS("랜덤개체값권", ChatColor.GOLD + "채팅에 슬롯 입력 + IV 전부 랜덤", "RANDOM_IVS", true),
         IV_LOCK_RANDOM("개체값고정랜덤", ChatColor.GOLD + "채팅에 슬롯 입력 → [스탯] 선택 → 해당 스탯만 랜덤", "IV_LOCK_RANDOM", true),
         IV_LOCK_MAX("개체값고정최대", ChatColor.GOLD + "채팅에 슬롯 입력 → [스탯] 선택 → 해당 스탯만 31", "IV_LOCK_MAX", true),
@@ -111,6 +115,7 @@ private File legendsFile;
     public void onEnable(){
         saveDefaultConfig();
         loadMoveAliases();
+        loadNatureAliases();
         Bukkit.getPluginManager().registerEvents(this, this);
         Objects.requireNonNull(getCommand("지급")).setExecutor(this);
         Objects.requireNonNull(getCommand("하트비늘")).setExecutor(this);
@@ -141,6 +146,9 @@ saveResource("legendaries.yml", false);
             } catch (Throwable ignore) {}
         }
         legendNamesCfg = YamlConfiguration.loadConfiguration(legendNamesFile);
+        // 성격 한글 매핑 기본파일 배포
+        try { saveResource("natures_ko.yml", false); } catch (IllegalArgumentException ex) { }
+
 
         getLogger().info("PixelTicket enabled (v1.0.4).");
     }
@@ -156,7 +164,8 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
             if (args.length > 0 && (args[0].equalsIgnoreCase("리로드") || args[0].equalsIgnoreCase("reload"))){
                 if (!sender.hasPermission("pixelticket.admin")) { sender.sendMessage(color("&c권한이 없습니다.")); return true; }
                 loadMoveAliases();
-                sender.sendMessage(color("&amoves_ko.yml을 다시 불러왔습니다. 항목: &e"+moveAlias.size()));
+                loadNatureAliases();
+                sender.sendMessage(color("&a한글화 파일을 다시 불러왔습니다. &fmoves_ko.yml: &e"+moveAlias.size()+" &7/ &fnatures_ko.yml: &e"+natureAlias.size()));
                 return true;
             }
             if (args.length==0){ sender.sendMessage(color("&d/하트비늘 취소, /하트비늘 아이템, /하트비늘 지급 <플레이어> <개수> | /하트비늘 reload")); return true; }
@@ -320,6 +329,7 @@ return true;
             case IV_LOCK_RANDOM: case IV_LOCK_MAX:
             case GENDER_MALE: case GENDER_FEMALE:
             case V1: case V2: case V3: case V4: case V5: case V6:
+            case NATURE_FIX: case ABILITY_PATCH:
             case LEG_FORCE_SPAWN:
                 if (type == TicketType.LEG_FORCE_SPAWN) {
                     consumeOne(p);
@@ -360,8 +370,8 @@ return true;
     public void onChat(AsyncPlayerChatEvent e){
         Player p = e.getPlayer();
         UUID u = p.getUniqueId();
-        if (heartSlotWaiting.containsKey(u) || pending.containsKey(u)) e.setCancelled(true);
-        if (heartSlotWaiting.containsKey(u) || pending.containsKey(u)) {
+        if (heartSlotWaiting.containsKey(u) || natureSlotWaiting.containsKey(u) || pending.containsKey(u)) e.setCancelled(true);
+        if (heartSlotWaiting.containsKey(u) || natureSlotWaiting.containsKey(u) || pending.containsKey(u)) {
             e.setCancelled(true);
         }
         
@@ -426,6 +436,34 @@ return true;
                 p.sendMessage(color("&c숫자를 입력하세요."));
                 return;
             }
+        }
+
+        
+        // 성격 확정권: #성격 입력 대기 처리
+        if (natureSlotWaiting.containsKey(p.getUniqueId())){
+            String raw = e.getMessage();
+            String msg = ChatColor.stripColor(raw).trim();
+            if (!msg.startsWith("#")){
+                p.sendMessage(color("&c#성격 형식으로 입력하세요. 예: #고집 또는 #adamant"));
+                return;
+            }
+            String natKey = msg.substring(1).toLowerCase().replace(" ", "").replace("-", "");
+            String nat = natureAlias.getOrDefault(natKey, natKey);
+            int slot = natureSlotWaiting.remove(p.getUniqueId());
+            // 허용 목록(영문) 검사 - 잘못된 입력 방지
+            String[] allowed = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
+            java.util.Set<String> allowSet = new java.util.HashSet<>(java.util.Arrays.asList(allowed));
+            if (!allowSet.contains(nat)){
+                p.sendMessage(color("&c알 수 없는 성격입니다: &f"+natKey+" &7(moves_ko.yml과 유사하게 &fnatures_ko.yml&7에 별칭을 추가할 수 있습니다)"));
+                return;
+            }
+            tryCommands(
+                    "pokeedit "+p.getName()+" "+slot+" n:"+nat,
+                    "pokeedit "+p.getName()+" "+slot+" nature:"+nat
+            );
+            consumeOne(p);
+            p.sendMessage(color("&d[성격변경권(확정)] &f슬롯 "+slot+" 성격을 &d"+nat+" &f로 변경 시도."));
+            return;
         }
 
         // 개체값고정 스탯 선택 대기 처리
@@ -566,6 +604,23 @@ final int fslot = slot;
                     consumeOne(p);
                     p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
                     break;
+            
+            case NATURE_FIX: {
+                // 다음 단계: #성격 입력 대기
+                natureSlotWaiting.put(p.getUniqueId(), slot);
+                p.sendMessage(color("&d[성격변경권(확정)] &f이제 &e#성격(한글/영문)&f을 입력하세요. 예: &e#고집 &7또는 &e#adamant"));
+                break;
+            }
+            case ABILITY_PATCH:
+                tryCommands(
+                        "pokeedit "+p.getName()+" "+slot+" ha untradeable unbreedable",
+                        "pokeedit "+p.getName()+" "+slot+" hiddenability:true untradeable unbreedable",
+                        "pokeedit "+p.getName()+" "+slot+" ha:true untradeable unbreedable"
+                );
+                consumeOne(p);
+                p.sendMessage(color("&b[특성 패치] &f슬롯 "+slot+" &d드림특성(히든)&f 적용 + &7교환/교배 불가 설정 시도."));
+                break;
+
                 }
 
             case BIGGEST:
