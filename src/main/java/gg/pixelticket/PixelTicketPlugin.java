@@ -49,7 +49,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
         NEUTER("중성화권", ChatColor.RED + "채팅에 슬롯 입력 + 번식 불가", "NEUTER", true),
         NATURE_CHANGE("성격변경권", ChatColor.LIGHT_PURPLE + "채팅에 슬롯 입력 + 성격 랜덤 변경", "NATURE_CHANGE", true),
         NATURE_FIX("성격변경권(확정)", ChatColor.LIGHT_PURPLE + "채팅: 슬롯 선택 후 #성격 입력 → 해당 성격으로 변경", "NATURE_FIX", true),
-        ABILITY_PATCH("특성 패치", ChatColor.AQUA + "채팅에 슬롯 입력 + 드림특성 적용 & 교환/교배 불가", "ABILITY_PATCH", true),
+        ABILITY_PATCH("특성패치", ChatColor.AQUA + "채팅에 슬롯 입력 + 드림특성 적용 & 교환/교배 불가", "ABILITY_PATCH", true),
         RANDOM_IVS("랜덤개체값권", ChatColor.GOLD + "채팅에 슬롯 입력 + IV 전부 랜덤", "RANDOM_IVS", true),
         IV_LOCK_RANDOM("개체값고정랜덤", ChatColor.GOLD + "채팅에 슬롯 입력 → [스탯] 선택 → 해당 스탯만 랜덤", "IV_LOCK_RANDOM", true),
         IV_LOCK_MAX("개체값고정최대", ChatColor.GOLD + "채팅에 슬롯 입력 → [스탯] 선택 → 해당 스탯만 31", "IV_LOCK_MAX", true),
@@ -77,12 +77,36 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
             this.showHint = showHint;
         }
 
-        public static TicketType fromKorean(String s) {
-            for (TicketType t : values()) {
-                if (t.displayName.equalsIgnoreCase(s) || t.name().equalsIgnoreCase(s) || t.id.equalsIgnoreCase(s)) {
-                    return t;
-                }
-            }
+        public 
+
+static TicketType fromKorean(String s) {
+    if (s == null) return null;
+    String raw = s.trim();
+    String norm = raw.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
+    // 특성패치: 공백 허용하지 않음 (정확히 '특성패치'만)
+    if (norm.equals("특성패치") && !raw.equalsIgnoreCase("특성패치")) {
+        return null;
+    }
+    for (TicketType t : values()) {
+        String dn = t.displayName == null ? "" : t.displayName.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
+        String idn = t.id == null ? "" : t.id.replace(" ", "").replace("(", "").replace(")", "").toLowerCase();
+        // ABILITY_PATCH는 위에서 raw 검사로만 허용되므로 여기선 제외 로직
+        if (t == ABILITY_PATCH) {
+            if (raw.equalsIgnoreCase("특성패치")) return ABILITY_PATCH;
+            // "특성 패치" 등 공백 포함형은 허용하지 않음
+        } else {
+            if (dn.equals(norm) || idn.equals(norm) || t.name().equalsIgnoreCase(raw)) return t;
+        }
+    }
+    // 추가 별칭을 넣고 싶으면 아래에 개별적으로 추가 가능 (현재 없음)
+    return null;
+}
+// also handle common aliases
+    if (norm.equals("특성패치") || norm.equals("특성패치권")) return ABILITY_PATCH;
+    if (norm.equals("성격변경권확정") || norm.equals("성격변경권(확정)")) return NATURE_FIX;
+    return null;
+}
+}
             return null;
         }
     }
@@ -220,7 +244,10 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
         if (args[0].equalsIgnoreCase("설정")) {
             if (!(sender instanceof Player)) { sender.sendMessage(color("&c플레이어만 사용 가능합니다.")); return true; }
             if (args.length < 2) { sender.sendMessage(color("&e사용법: /지급 설정 <권종류>")); return true; }
+            int consumedT = 1;
             TicketType t = TicketType.fromKorean(args[1]);
+            if (t == null && args.length>=3) { t = TicketType.fromKorean(args[1]+args[2]); if (t!=null) consumedT=2; }
+            if (t == null && args.length>=4) { TicketType t3 = TicketType.fromKorean(args[1]+args[2]+args[3]); if (t3!=null){ t=t3; consumedT=3; } }
             if (t == null) { sender.sendMessage(color("&c권종류를 찾을 수 없습니다.")); return true; }
             Player p = (Player) sender;
             ItemStack hand = p.getInventory().getItemInMainHand();
@@ -237,12 +264,15 @@ public boolean onCommand(CommandSender sender, Command cmd, String label, String
             return true;
         }
 
-        if (args.length < 3) { help(sender); return true; }
-TicketType t = TicketType.fromKorean(args[0]);
+        int consumed = 1;
+TicketType t = TicketType.fromKorean(args.length>0?args[0]:null);
+if (t == null && args.length>=2) { t = TicketType.fromKorean(args[0]+args[1]); if (t!=null) consumed=2; }
+if (t == null && args.length>=3) { TicketType t3 = TicketType.fromKorean(args[0]+args[1]+args[2]); if (t3!=null){ t=t3; consumed=3; } }
 if (t == null) { sender.sendMessage(color("&c권종류를 찾을 수 없습니다.")); return true; }
-Player target = Bukkit.getPlayerExact(args[1]);
-if (target == null) { sender.sendMessage(color("&c해당 플레이어를 찾을 수 없습니다: &f")+args[1]); return true; }
-String customName = String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length));
+if (args.length < consumed + 2) { help(sender); return true; }
+Player target = Bukkit.getPlayerExact(args[consumed]);
+if (target == null) { sender.sendMessage(color("&c해당 플레이어를 찾을 수 없습니다: &f")+args[consumed]); return true; }
+String customName = String.join(" ", java.util.Arrays.copyOfRange(args, consumed+1, args.length));
 org.bukkit.inventory.ItemStack ticket = createTicket(t, 1, customName);
 target.getInventory().addItem(ticket);
 sender.sendMessage(color("&a지급 완료: &f")+t.displayName+color(" &7→ &f")+target.getName());
@@ -260,19 +290,64 @@ return true;
         s.sendMessage(color("&b/지급 테스트 &7- 플러그인 자체 점검"));
     }
 
-    @Override
+    
+@Override
+public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+    if (!cmd.getName().equalsIgnoreCase("지급")) return java.util.Collections.emptyList();
+    java.util.List<String> out = new java.util.ArrayList<>();
 
-    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
-        if (args.length == 1) {
-            List<String> base = new ArrayList<>(Arrays.asList("설정","테스트"));
-            base.addAll(Arrays.stream(TicketType.values()).map(t->t.displayName).collect(Collectors.toList()));
-            return base.stream().filter(s->s.startsWith(args[0])).collect(Collectors.toList());
-        }
-        if (args.length == 2 && "설정".equalsIgnoreCase(args[0]))
-            return Arrays.asList("하트비늘","랜덤개체값권","강화","설정").stream().filter(s1->s1.startsWith(args[1])).collect(Collectors.toList());
-        return Collections.emptyList();
+    // 1) 첫 인자: '설정', '테스트' 또는 권종류 표시명
+    if (args.length == 1) {
+        out.add("설정");
+        out.add("테스트");
+        for (TicketType t : TicketType.values()) out.add(t.displayName);
+        return out.stream().filter(s -> s.startsWith(args[0])).collect(java.util.stream.Collectors.toList());
     }
-    @EventHandler
+
+    // 2) 설정 브랜치: /지급 설정 <권종류> [...]  -> 권종류 조합 지원
+    if ("설정".equalsIgnoreCase(args[0])) {
+        if (args.length >= 2 && args.length <= 4) {
+            String probe = String.join("", java.util.Arrays.copyOfRange(args, 1, args.length));
+            for (TicketType t : TicketType.values()) {
+                String key = t.displayName.replace(" ","").replace("(","").replace(")","");
+                if (key.startsWith(probe.replace(" ",""))) out.add(t.displayName);
+            }
+            return out;
+        }
+        return java.util.Collections.emptyList();
+    }
+
+    // 3) 일반 지급: /지급 <권종류> <닉> <표시이름...>
+    // 권종류 토큰을 1~3개까지 결합하여 식별
+    int consumed = 1;
+    TicketType t = TicketType.fromKorean(args[0]);
+    if (t == null && args.length >= 2) { t = TicketType.fromKorean(args[0] + args[1]); if (t != null) consumed = 2; }
+    if (t == null && args.length >= 3) { TicketType t3 = TicketType.fromKorean(args[0] + args[1] + args[2]); if (t3 != null) { t = t3; consumed = 3; } }
+
+    if (t == null) {
+        // 아직 권종류 미완성 → 권종류 후보 제시
+        String probe = String.join("", java.util.Arrays.copyOfRange(args, 0, Math.min(args.length, 3)));
+        for (TicketType tt : TicketType.values()) {
+            String key = tt.displayName.replace(" ","").replace("(","").replace(")","");
+            if (key.startsWith(probe.replace(" ",""))) out.add(tt.displayName);
+        }
+        return out;
+    }
+
+    // 닉네임 위치 자동 완성
+    if (args.length == consumed + 1) {
+        String prefix = args[consumed];
+        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+            String name = p.getName();
+            if (name.toLowerCase().startsWith(prefix.toLowerCase())) out.add(name);
+        }
+        return out;
+    }
+
+    return java.util.Collections.emptyList();
+}
+@EventHandler
+
     public void onUse(PlayerInteractEvent e){
         if (e.getHand() != EquipmentSlot.HAND) return; // 보조손 중복 방지
         if (e.getAction()!=Action.RIGHT_CLICK_AIR && e.getAction()!=Action.RIGHT_CLICK_BLOCK) return;
