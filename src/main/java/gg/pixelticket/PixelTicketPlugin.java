@@ -568,24 +568,27 @@ final int fslot = slot;
         switch (type){
             case IV_LOCK_RANDOM:
             case IV_LOCK_MAX: {
-                // Ask stat via clickable chat
-                try {
-                    net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
-                    String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
-                    for (String lab : labels){
-                        net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+lab+"] ");
-                        btn.setBold(true);
-                        btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, lab));
-                        btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
-                                new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
-                        base.addExtra(btn);
-                    }
-                    p.spigot().sendMessage(base);
-                } catch (Throwable ignored) {}
-                ivLockWaiting.put(p.getUniqueId(), new IvPending(type, slot));
-                p.sendMessage(color("&f원하는 스탯 이름을 클릭하거나 입력하세요. &7(취소: 취소)"));
-                return;
-            }
+                
+// Ask stat via clickable chat
+try {
+    net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
+    String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
+    for (String lab : labels){
+        net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+lab+"] ");
+        btn.setBold(true);
+        btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(
+                net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, lab));
+        btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(
+                net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
+                new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
+        base.addExtra(btn);
+    }
+    p.spigot().sendMessage(base);
+} catch (Throwable ignored) {}
+ivLockWaiting.put(p.getUniqueId(), new IvPending(type, slot));
+p.sendMessage(color("&f원하는 스탯 이름을 클릭하거나 입력하세요. &7(취소: 취소)"));
+return;
+
 
             case SHINY:
                 tryCommands(
@@ -596,17 +599,19 @@ final int fslot = slot;
                 consumeOne(p);
                 p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬을 이로치로 변경 시도."));
                 break;
-            case NATURE_CHANGE:
-                {
-                    String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
-                    String nat = natures[new java.util.Random().nextInt(natures.length)];
-                    runConsole("minecraft:pokeedit " + p.getName() + " " + slot + " nature:" + nat);
-                    consumeOne(p);
-                    p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
-                    break;
-                }
             
-            case NATURE_FIX: {
+
+case NATURE_CHANGE:
+    {
+        String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
+        String nat = natures[new java.util.Random().nextInt(natures.length)];
+        runConsole("minecraft:pokeedit " + p.getName() + " " + slot + " nature:" + nat);
+        consumeOne(p);
+        p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
+        break;
+    }
+
+case NATURE_FIX: {
                 // 다음 단계: #성격 입력 대기
                 natureSlotWaiting.put(p.getUniqueId(), slot);
                 p.sendMessage(color("&d[성격변경권(확정)] &f이제 &e#성격(한글/영문)&f을 입력하세요. 예: &e#고집 &7또는 &e#adamant"));
@@ -621,8 +626,6 @@ final int fslot = slot;
                 consumeOne(p);
                 p.sendMessage(color("&b[특성 패치] &f슬롯 "+slot+" &d드림특성(히든)&f 적용 + &7교환/교배 불가 설정 시도."));
                 break;
-
-                }
 
             case BIGGEST:
                 tryCommands(
