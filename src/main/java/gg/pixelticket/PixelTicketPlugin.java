@@ -406,7 +406,9 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
                 }
                 break;
         }
-private String pickRandomLegend(){
+}
+
+    private String pickRandomLegend(){
         List<String> legends = legendsCfg.getStringList("legendaries");
         if (legends==null || legends.isEmpty()) return "Mewtwo";
         return legends.get(new java.util.Random().nextInt(legends.size()));
