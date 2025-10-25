@@ -1237,7 +1237,15 @@ void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
             org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
             if (KEY_TYPE != null) {
                 String id = pdc.get(KEY_TYPE, org.bukkit.persistence.PersistentDataType.STRING);
-                if (id != null) return TicketType.fromKorean(id);
+                if (id != null){
+                    // 우선: 정확한 id 또는 enum name으로 매칭
+                    for (TicketType t : TicketType.values()){
+                        if ((t.id != null && t.id.equalsIgnoreCase(id)) || t.name().equalsIgnoreCase(id)) return t;
+                    }
+                    // 호환: 기존 fromKorean도 시도
+                    TicketType alt = TicketType.fromKorean(id);
+                    if (alt != null) return alt;
+                }
             }
         } catch (Throwable ignored) {}
         return null;

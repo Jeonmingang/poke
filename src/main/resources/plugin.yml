@@ -1,6 +1,6 @@
 name: PixelTicket
 main: gg.pixelticket.PixelTicketPlugin
-version: 1.4.1
+version: 1.4.2
 api-version: 1.16
 commands:
   지급:
