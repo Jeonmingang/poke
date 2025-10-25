@@ -604,6 +604,7 @@ final int fslot = slot;
                     consumeOne(p);
                     p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
                     break;
+                }
             
             case NATURE_FIX: {
                 // 다음 단계: #성격 입력 대기
@@ -1264,6 +1265,49 @@ void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
             return ver == null || ver < TICKET_VERSION;
         } catch (Throwable ignored){}
         return false;
+    }
+
+
+    private void loadNatureAliases(){
+        try {
+            java.io.File dataDir = getDataFolder();
+            if (!dataDir.exists()) dataDir.mkdirs();
+            java.io.File f = new java.io.File(dataDir, "natures_ko.yml");
+            org.bukkit.configuration.file.YamlConfiguration y;
+            if (!f.exists()){
+                y = new org.bukkit.configuration.file.YamlConfiguration();
+                // 기본 매핑
+                y.set("고집", "adamant");
+                y.set("명랑", "jolly");
+                y.set("겁쟁이", "timid");
+                y.set("조심", "modest");
+                y.set("대담", "bold");
+                y.set("차분", "calm");
+                y.set("신중", "careful");
+                y.set("장난꾸러기", "impish");
+                y.set("무사태평", "relaxed");
+                y.set("천진난만", "naive");
+                y.set("외로움", "lonely");
+                y.set("온순", "docile");
+                y.set("개구쟁이", "hasty");
+                y.set("용감", "brave");
+                y.set("냉정", "quiet");
+                y.set("변덕", "quirky");
+                y.set("덜렁", "rash");
+                y.set("의젓", "serious");
+                y.set("온화", "gentle");
+                y.set("불끈", "naughty");
+                y.set("소심", "bashful");
+                y.save(f);
+            } else {
+                y = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(f);
+            }
+            natureAlias.clear();
+            for (String k : y.getKeys(false)) {
+                String v = y.getString(k);
+                if (v!=null) natureAlias.put(k.toLowerCase().replace(" ", "").replace("-",""), v.toLowerCase());
+            }
+        } catch (Throwable ignored){}
     }
 
 }
