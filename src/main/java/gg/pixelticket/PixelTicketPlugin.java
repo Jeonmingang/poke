@@ -385,19 +385,28 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
 
             case SHINY: case BIGGEST: case SMALLEST: case NEUTER:
             case NATURE_CHANGE:
-                {
-                    String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
-                    String nat = natures[new java.util.Random().nextInt(natures.length)];
-                    tryCommands(
-                            "pokeedit "+p.getName()+" "+slot+" n:"+nat,
-                            "pokeedit "+p.getName()+" "+slot+" nature:"+nat
-                    );
-                    p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
-                    break;
+            case RANDOM_IVS:
+            case IV_LOCK_RANDOM: case IV_LOCK_MAX:
+            case GENDER_MALE: case GENDER_FEMALE:
+            case V1: case V2: case V3: case V4: case V5: case V6:
+            case NATURE_FIX: case ABILITY_PATCH:
+            case LEG_FORCE_SPAWN:
+                if (type == TicketType.LEG_FORCE_SPAWN) {
+                    consumeOne(p);
+                    runConsole("spawnlegendary " + p.getName());
+                } else {
+                    org.bukkit.inventory.ItemStack _ref = null;
+                    try {
+                        org.bukkit.inventory.ItemStack _h = p.getInventory().getItemInMainHand();
+                        if (_h != null && _h.getType() != org.bukkit.Material.AIR) { _ref = _h.clone(); _ref.setAmount(1); }
+                    } catch (Throwable ignore) {}
+                    if (_ref != null) voucherRefund.put(p.getUniqueId(), _ref);
+                    consumeOne(p);
+                    askSlotThen(p, type);
                 }
-    }
-
-    private String pickRandomLegend(){
+                break;
+        }
+private String pickRandomLegend(){
         List<String> legends = legendsCfg.getStringList("legendaries");
         if (legends==null || legends.isEmpty()) return "Mewtwo";
         return legends.get(new java.util.Random().nextInt(legends.size()));
@@ -598,14 +607,14 @@ final int fslot = slot;
             return p != null && p.isEnabled();
         } catch (Throwable t){ return false; }
     }
+    
     private void handleSlotAction(Player p, TicketType type, int slot){
-        // V1~V6: 오롱털/메타몽/무성 검사 후 차단 시 아이템 환불
+        // Block certain targets for V1~V6 and refund
         if (type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 ||
             type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
             boolean blocked = isDittoSlot(p, slot) || isGrimmsnarlSlot(p, slot) || isGenderlessSlot(p, slot);
             if (blocked) {
                 p.sendMessage(color("&c[확정권] 해당 슬롯은 사용 불가 대상입니다. (메타몽/오롱털/무성)"));
-                // Refund 1 ticket of the same type (우클릭 시 선소모했기 때문에 돌려줌)
                 try {
                     org.bukkit.inventory.ItemStack refund = createTicket(type, 1);
                     java.util.Map<Integer, org.bukkit.inventory.ItemStack> left = p.getInventory().addItem(refund);
@@ -620,49 +629,38 @@ final int fslot = slot;
             }
         }
 
-        // 보호: 메타몽(Ditto)에게는 특정 변경권 사용 불가
-        if (type==TicketType.RANDOM_IVS || type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 || type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
+        // Ditto protection for some tickets
+        if (type==TicketType.RANDOM_IVS || type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 ||
+            type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
             if (isDittoSlot(p, slot)) {
                 p.sendMessage(color("&c[안내] 메타몽(Ditto)에는 이 변경권을 사용할 수 없습니다."));
                 return;
             }
         }
 
-        // v1~v6 변경권: Ditto(메타몽) 슬롯 보호
-        if (type==TicketType.V1 || type==TicketType.V2 || type==TicketType.V3 || type==TicketType.V4 || type==TicketType.V5 || type==TicketType.V6) {
-            if (isDittoSlot(p, slot)) {
-                p.sendMessage(color("&c[변경권] 메타몽(Ditto)에는 V1~V6 변경권을 사용할 수 없습니다."));
+        switch (type){
+            case IV_LOCK_RANDOM:
+            case IV_LOCK_MAX: {
+                try {
+                    net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
+                    String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
+                    for (String lab : labels){
+                        net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+lab+"] ");
+                        btn.setBold(true);
+                        btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(
+                                net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, lab));
+                        btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(
+                                net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
+                                new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
+                        base.addExtra(btn);
+                    }
+                    p.spigot().sendMessage(base);
+                } catch (Throwable ignored) {}
+                ivLockWaiting.put(p.getUniqueId(), new IvPending(type, slot));
+                p.sendMessage(color("&f원하는 스탯 이름을 클릭하거나 입력하세요. &7(취소: 취소)"));
                 return;
             }
-            // consume on success path later
-        }
-
-        switch (type){
-            
-case IV_LOCK_RANDOM:
-case IV_LOCK_MAX: {
-    // Ask stat via clickable chat
-    try {
-        net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
-        String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
-        for (String lab : labels){
-            net.md_5.bungee.api.chat.TextComponent btn = new net.md_5.bungee.api.chat.TextComponent("["+lab+"] ");
-            btn.setBold(true);
-            btn.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(
-                    net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND, lab));
-            btn.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(
-                    net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT,
-                    new net.md_5.bungee.api.chat.ComponentBuilder(color("&e클릭해서 채팅창에 입력")).create()));
-            base.addExtra(btn);
-        }
-        p.spigot().sendMessage(base);
-    } catch (Throwable ignored) {}
-    ivLockWaiting.put(p.getUniqueId(), new IvPending(type, slot));
-    p.sendMessage(color("&f원하는 스탯 이름을 클릭하거나 입력하세요. &7(취소: 취소)"));
-    return;
-}
-case SHINY:
-
+            case SHINY:
                 tryCommands(
                         "pokeedit "+p.getName()+" "+slot+" shiny",
                         "pokeedit "+p.getName()+" "+slot+" shiny:true",
@@ -671,23 +669,22 @@ case SHINY:
                 consumeOne(p);
                 p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬을 이로치로 변경 시도."));
                 break;
-            
 
-
-case NATURE_CHANGE:
-    {
-                    String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
-        String nat = natures[new java.util.Random().nextInt(natures.length)];
-        runConsole("minecraft:pokeedit " + p.getName() + " " + slot + " nature:" + nat);
-        consumeOne(p);
-        p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
-        break;
-    }
-case NATURE_FIX: {
-                // 다음 단계: #성격 입력 대기
+            case NATURE_CHANGE: {
+                String[] natures = new String[]{"adamant","bashful","bold","brave","calm","careful","docile","gentle","hardy","hasty","impish","jolly","lax","lonely","mild","modest","naive","naughty","quiet","quirky","rash","relaxed","sassy","serious","timid"};
+                String nat = natures[new java.util.Random().nextInt(natures.length)];
+                tryCommands(
+                        "pokeedit "+p.getName()+" "+slot+" n:"+nat,
+                        "pokeedit "+p.getName()+" "+slot+" nature:"+nat
+                );
+                consumeOne(p);
+                p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
+                break;
+            }
+            case NATURE_FIX: {
                 natureSlotWaiting.put(p.getUniqueId(), slot);
                 p.sendMessage(color("&d[성격변경권(확정)] &f이제 &e#성격(한글/영문)&f을 입력하세요. 예: &e#고집 &7또는 &e#adamant"));
-                break;
+                return;
             }
             case ABILITY_PATCH:
                 tryCommands(
@@ -696,7 +693,7 @@ case NATURE_FIX: {
                         "pokeedit "+p.getName()+" "+slot+" ha:true untradeable unbreedable"
                 );
                 consumeOne(p);
-                p.sendMessage(color("&b[특성 패치] &f슬롯 "+slot+" &d드림특성(히든)&f 적용 + &7교환/교배 불가 설정 시도."));
+                p.sendMessage(color("&b[특성패치] &f슬롯 "+slot+" &d드림특성(히든)&f 적용 + &7교환/교배 불가 설정 시도."));
                 break;
 
             case BIGGEST:
@@ -708,6 +705,7 @@ case NATURE_FIX: {
                 consumeOne(p);
                 p.sendMessage(color("&a[가장큼권] &f슬롯 "+slot+" 크기를 Ginormous로 변경 시도."));
                 break;
+
             case SMALLEST:
                 tryCommands(
                         "pokeedit "+p.getName()+" "+slot+" gr:Microscopic",
@@ -717,6 +715,7 @@ case NATURE_FIX: {
                 consumeOne(p);
                 p.sendMessage(color("&a[가장작음권] &f슬롯 "+slot+" 크기를 Microscopic으로 변경 시도."));
                 break;
+
             case NEUTER:
                 tryCommands(
                         "pokeedit "+p.getName()+" "+slot+" unbreedable",
@@ -725,7 +724,8 @@ case NATURE_FIX: {
                 );
                 p.sendMessage(color("&c[중성화권] &f슬롯 "+slot+" 번식 불가 설정 시도."));
                 break;
-            case RANDOM_IVS:
+
+            case RANDOM_IVS: {
                 java.util.Random r = new java.util.Random();
                 int hp=r.nextInt(32), atk=r.nextInt(32), def=r.nextInt(32), spa=r.nextInt(32), spd=r.nextInt(32), spe=r.nextInt(32);
                 tryCommands(
@@ -735,6 +735,8 @@ case NATURE_FIX: {
                 consumeOne(p);
                 p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV 전부 랜덤화 시도."));
                 break;
+            }
+
             case GENDER_MALE:
                 tryCommands(
                         "pokeedit "+p.getName()+" "+slot+" gender:male",
@@ -744,6 +746,7 @@ case NATURE_FIX: {
                 consumeOne(p);
                 p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 수컷으로 변경 시도."));
                 break;
+
             case GENDER_FEMALE:
                 tryCommands(
                         "pokeedit "+p.getName()+" "+slot+" gender:female",
@@ -753,10 +756,12 @@ case NATURE_FIX: {
                 consumeOne(p);
                 p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 암컷으로 변경 시도."));
                 break;
+
             case V1: case V2: case V3: case V4: case V5: case V6:
                 int n = Integer.parseInt(type.name().substring(1));
                 applyVIV(p, slot, n);
                 break;
+
             case LEG_FORCE_SPAWN:
             case LEG_SELECT:
             case LEG_RANDOM:
@@ -764,7 +769,6 @@ case NATURE_FIX: {
         }
     }
 
-    // N개=31, 나머지=랜덤(0~31)
     private void applyVIV(Player p, int slot, int n){
         java.util.Random rnd = new java.util.Random();
         int hp = rnd.nextInt(32), atk = rnd.nextInt(32), def = rnd.nextInt(32),
