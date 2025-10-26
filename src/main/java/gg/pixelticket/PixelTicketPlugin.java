@@ -606,9 +606,10 @@ if (!pending.containsKey(u)) return;
         try { slot = Integer.parseInt(digitOnly); } catch (Exception ex) { e.getPlayer().sendMessage(color("&c숫자(1~6)를 입력하세요.")); return; }
         if (slot<1 || slot>6) { e.getPlayer().sendMessage(color("&c슬롯은 1~6 범위여야 합니다.")); return; }
         PendingAction pa = pending.remove(u);
-        p = e.getPlayer();
-        }
-        final Player fp = p;
+        final Player fp = e.getPlayer();
+        final PendingAction fpa = pa;
+        final int fslot = slot;
+        final Player fp = e.getPlayer();
 final PendingAction fpa = pa;
 final int fslot = slot;
         new BukkitRunnable(){ @Override public void run(){ handleSlotAction(fp, fpa.type, fslot); } }.runTask(this);
