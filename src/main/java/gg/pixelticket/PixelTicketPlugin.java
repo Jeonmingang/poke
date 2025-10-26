@@ -461,7 +461,8 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
             int st = heartSlotWaiting.get(p.getUniqueId()); // -1: need party slot; >=100: need index; >=200: need #move; 1..6: need #move (teach)
             try{
                 if (st == -1){
-                    int slot = Integer.parseInt(msg);
+                    String digitOnly = msg.replaceAll("[^0-9]", "");
+                    int slot = Integer.parseInt(digitOnly);
                     if (slot<1 || slot>6){ p.sendMessage(color("&c1~6 사이의 숫자를 입력하세요.")); return; }
                     if (hasPBLite()){
                         heartSlotWaiting.put(p.getUniqueId(), 100 + slot); // expect index next
@@ -474,7 +475,8 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
                 }
                 // If expecting index (PBLite path)
                 if (st >= 100 && st < 200 && !msg.startsWith("#")){
-                    int idx = Integer.parseInt(msg);
+                    String d = msg.replaceAll("[^0-9]", "");
+                    int idx = Integer.parseInt(d);
                     if (idx<1 || idx>4){ p.sendMessage(color("&c1~4 사이의 숫자를 입력하세요.")); return; }
                     int slot = st - 100;
                     heartSlotWaiting.put(p.getUniqueId(), 200 + (slot*10 + idx)); // expect #move
@@ -516,6 +518,14 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
         if (natureSlotWaiting.containsKey(p.getUniqueId())){
             String raw = e.getMessage();
             String msg = ChatColor.stripColor(raw).trim();
+            if (msg.equalsIgnoreCase("취소")){
+                natureSlotWaiting.remove(p.getUniqueId());
+                org.bukkit.inventory.ItemStack _refund = voucherRefund.remove(p.getUniqueId());
+                if (_refund != null) p.getInventory().addItem(_refund);
+                p.sendMessage(color("&7작업을 취소하고 &a소모권을 반환했습니다."));
+                e.setCancelled(true);
+                return;
+            }
             if (!msg.startsWith("#")){
                 p.sendMessage(color("&c#성격 형식으로 입력하세요. 예: #고집 또는 #adamant"));
                 return;
@@ -581,20 +591,19 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
             return;
         }
 if (!pending.containsKey(u)) return;
-        String msg = e.getMessage().trim();
-        if (msg.equalsIgnoreCase("취소")){
+        String rawMsg = org.bukkit.ChatColor.stripColor(e.getMessage()).trim();
+        if (rawMsg.equalsIgnoreCase("취소")){
             pending.remove(u);
             org.bukkit.inventory.ItemStack _refund = voucherRefund.remove(u);
             if (_refund != null) p.getInventory().addItem(_refund);
             p.sendMessage(color("&7작업을 취소하고 &a소모권을 반환했습니다."));
             return;
         }
-        // (cancel removed in non-event context)
         int slot;
-        try { slot = Integer.parseInt(msg); } catch (Exception ex) { e.getPlayer().sendMessage(color("&c숫자(1~6)를 입력하세요.")); return; }
+        String digitOnly = rawMsg.replaceAll("[^0-9]", "");
+        try { slot = Integer.parseInt(digitOnly); } catch (Exception ex) { e.getPlayer().sendMessage(color("&c숫자(1~6)를 입력하세요.")); return; }
         if (slot<1 || slot>6) { e.getPlayer().sendMessage(color("&c슬롯은 1~6 범위여야 합니다.")); return; }
         PendingAction pa = pending.remove(u);
-        voucherRefund.remove(u);
         p =  e.getPlayer();
 final Player fp = p;
 final PendingAction fpa = pa;
