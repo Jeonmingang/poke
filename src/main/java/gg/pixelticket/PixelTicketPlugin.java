@@ -609,9 +609,6 @@ if (!pending.containsKey(u)) return;
         final Player fp = e.getPlayer();
         final PendingAction fpa = pa;
         final int fslot = slot;
-        final Player fp = e.getPlayer();
-final PendingAction fpa = pa;
-final int fslot = slot;
         new BukkitRunnable(){ @Override public void run(){ handleSlotAction(fp, fpa.type, fslot); } }.runTask(this);
     }
 
