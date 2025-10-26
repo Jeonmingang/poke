@@ -334,6 +334,9 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
 @EventHandler
 
     public void onUse(PlayerInteractEvent e){
+        // block new uses while any pending input is waiting
+        if (pending.containsKey(e.getPlayer().getUniqueId()) || natureSlotWaiting.containsKey(e.getPlayer().getUniqueId()) || heartSlotWaiting.containsKey(e.getPlayer().getUniqueId()) || ivLockWaiting.containsKey(e.getPlayer().getUniqueId())) { e.setCancelled(true); e.getPlayer().sendMessage(color("&c진행 중인 작업이 있습니다. 채팅 입력 또는 취소 명령을 먼저 완료하세요.")); return; }
+
         if (e.getHand() != EquipmentSlot.HAND) return; // 보조손 중복 방지
         if (e.getAction()!=Action.RIGHT_CLICK_AIR && e.getAction()!=Action.RIGHT_CLICK_BLOCK) return;
         Player p = e.getPlayer();
@@ -380,6 +383,7 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
                 break;
 
             case LEG_SELECT:
+                consumeOne(p);
                 openLegendGui(p, 0);
                 break;
 
@@ -544,7 +548,6 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
                     "pokeedit "+p.getName()+" "+slot+" n:"+nat,
                     "pokeedit "+p.getName()+" "+slot+" nature:"+nat
             );
-            consumeOne(p);
             p.sendMessage(color("&d[성격변경권(확정)] &f슬롯 "+slot+" 성격을 &d"+nat+" &f로 변경 시도."));
             return;
         }
@@ -583,7 +586,6 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
             if (key.equals("ivspe")){
                 tryCommands(String.format("pokeedit %s %d ivspeed:%d", p.getName(), ivp.slot, val));
             }
-            consumeOne(p);
             p.sendMessage(color((ivp.type==TicketType.IV_LOCK_MAX? "&6[개체값고정최대] ":"&6[개체값고정랜덤] ")
                     + "&f슬롯 "+ivp.slot+" &e"+pretty+"&f만 " + (ivp.type==TicketType.IV_LOCK_MAX? "31":"랜덤("+val+")") + " 으로 변경 시도."));
             ivLockWaiting.remove(p.getUniqueId());
@@ -604,8 +606,9 @@ if (!pending.containsKey(u)) return;
         try { slot = Integer.parseInt(digitOnly); } catch (Exception ex) { e.getPlayer().sendMessage(color("&c숫자(1~6)를 입력하세요.")); return; }
         if (slot<1 || slot>6) { e.getPlayer().sendMessage(color("&c슬롯은 1~6 범위여야 합니다.")); return; }
         PendingAction pa = pending.remove(u);
-        p =  e.getPlayer();
-final Player fp = p;
+        p = e.getPlayer();
+        }
+        final Player fp = p;
 final PendingAction fpa = pa;
 final int fslot = slot;
         new BukkitRunnable(){ @Override public void run(){ handleSlotAction(fp, fpa.type, fslot); } }.runTask(this);
@@ -677,8 +680,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" shiny:true",
                         "pokeedit "+p.getName()+" "+slot+" s:1"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬을 이로치로 변경 시도."));
+            p.sendMessage(color("&e[이로치권] &f슬롯 "+slot+" 포켓몬을 이로치로 변경 시도."));
                 break;
 
             case NATURE_CHANGE: {
@@ -688,8 +690,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" n:"+nat,
                         "pokeedit "+p.getName()+" "+slot+" nature:"+nat
                 );
-                consumeOne(p);
-                p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
+            p.sendMessage(color("&d[성격변경권] &f슬롯 " + slot + " 성격을 &d" + nat + " &f로 변경 시도."));
                 break;
             }
             case NATURE_FIX: {
@@ -703,8 +704,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" hiddenability:true untradeable unbreedable",
                         "pokeedit "+p.getName()+" "+slot+" ha:true untradeable unbreedable"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&b[특성패치] &f슬롯 "+slot+" &d드림특성(히든)&f 적용 + &7교환/교배 불가 설정 시도."));
+            p.sendMessage(color("&b[특성패치] &f슬롯 "+slot+" &d드림특성(히든)&f 적용 + &7교환/교배 불가 설정 시도."));
                 break;
 
             case BIGGEST:
@@ -713,8 +713,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" growth:Ginormous",
                         "pokeedit "+p.getName()+" "+slot+" growth:ginormous"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&a[가장큼권] &f슬롯 "+slot+" 크기를 Ginormous로 변경 시도."));
+            p.sendMessage(color("&a[가장큼권] &f슬롯 "+slot+" 크기를 Ginormous로 변경 시도."));
                 break;
 
             case SMALLEST:
@@ -723,8 +722,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" growth:Microscopic",
                         "pokeedit "+p.getName()+" "+slot+" growth:microscopic"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&a[가장작음권] &f슬롯 "+slot+" 크기를 Microscopic으로 변경 시도."));
+            p.sendMessage(color("&a[가장작음권] &f슬롯 "+slot+" 크기를 Microscopic으로 변경 시도."));
                 break;
 
             case NEUTER:
@@ -743,8 +741,7 @@ final int fslot = slot;
                         String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspd:%d", p.getName(), slot, hp, atk, def, spa, spd, spe),
                         String.format("pokeedit %s %d ivhp:%d ivatk:%d ivdef:%d ivspatk:%d ivspdef:%d ivspeed:%d", p.getName(), slot, hp, atk, def, spa, spd, spe)
                 );
-                consumeOne(p);
-                p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV 전부 랜덤화 시도."));
+            p.sendMessage(color("&6[랜덤개체값권] &f슬롯 "+slot+" IV 전부 랜덤화 시도."));
                 break;
             }
 
@@ -754,8 +751,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" g:male",
                         "pokeedit "+p.getName()+" "+slot+" sex:male"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 수컷으로 변경 시도."));
+            p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 수컷으로 변경 시도."));
                 break;
 
             case GENDER_FEMALE:
@@ -764,8 +760,7 @@ final int fslot = slot;
                         "pokeedit "+p.getName()+" "+slot+" g:female",
                         "pokeedit "+p.getName()+" "+slot+" sex:female"
                 );
-                consumeOne(p);
-                p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 암컷으로 변경 시도."));
+            p.sendMessage(color("&b[성별변경권] &f슬롯 "+slot+" 암컷으로 변경 시도."));
                 break;
 
             case V1: case V2: case V3: case V4: case V5: case V6:
@@ -808,9 +803,7 @@ final int fslot = slot;
                 p.getName(), slot, hp, atk, def, spa, spd, spe
         );
         tryCommands(cmd1, cmd2);
-
-        consumeOne(p);
-        p.sendMessage(color("&6[" + n + "V권] &f슬롯 " + slot + "의 IV 적용(선택 " + n + "개=31, 나머지 랜덤)."));
+            p.sendMessage(color("&6[" + n + "V권] &f슬롯 " + slot + "의 IV 적용(선택 " + n + "개=31, 나머지 랜덤)."));
     }
 
     private void tryCommands(String... commands){
@@ -903,7 +896,6 @@ final int fslot = slot;
                 eng = name;
             }
             runConsole("pokegive "+p.getName()+" "+eng);
-            consumeOne(p);
             p.sendMessage(color("&b[전설선택권] &f지급 완료: &b")+localize(eng));
             p.closeInventory();
         }
@@ -1351,7 +1343,25 @@ void markAsTicket(org.bukkit.inventory.ItemStack item, TicketType type){
     }
 
 
-    private boolean isLegacyTicket(org.bukkit.inventory.ItemStack item){
+    
+    private boolean removeOneMatching(org.bukkit.entity.Player p, java.util.function.Predicate<org.bukkit.inventory.ItemStack> match){
+        org.bukkit.inventory.PlayerInventory inv = p.getInventory();
+        for (int i = 0; i < inv.getSize(); i++){
+            org.bukkit.inventory.ItemStack it = inv.getItem(i);
+            if (it == null || it.getType() == org.bukkit.Material.AIR) continue;
+            try{
+                if (match.test(it)){
+                    int amt = it.getAmount();
+                    if (amt <= 1) inv.setItem(i, new org.bukkit.inventory.ItemStack(org.bukkit.Material.AIR));
+                    else it.setAmount(amt - 1);
+                    p.updateInventory();
+                    return true;
+                }
+            } catch (Throwable ignored){}
+        }
+        return false;
+    }
+private boolean isLegacyTicket(org.bukkit.inventory.ItemStack item){
         if (item == null) return false;
         try {
             org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
