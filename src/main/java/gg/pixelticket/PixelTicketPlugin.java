@@ -373,6 +373,11 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
         // (cancel removed in non-event context)
         TicketType type = getType(hand);
         if (type==null) return;
+                    }
+                } catch (Throwable ignored) {}
+                return;
+            }
+        }
 
         switch (type){
             case LEG_RANDOM:
@@ -654,24 +659,7 @@ if (!pending.containsKey(u)) return;
                             p.getWorld().dropItemNaturally(p.getLocation(), remain);
                         }
                     
-        // Block for IV_LOCK_* (개체값고정권): Ditto / Grimmsnarl(오롱털) / Genderless
-        if (type==TicketType.IV_LOCK_RANDOM || type==TicketType.IV_LOCK_MAX) {
-            boolean blocked2 = isDittoSlot(p, slot) || isGrimmsnarlSlot(p, slot) || isGenderlessSlot(p, slot);
-            if (blocked2) {
-                p.sendMessage(color("&c[개체값고정권] 해당 슬롯은 사용 불가 대상입니다. (메타몽/오롱털/무성)"));
-                try {
-                    org.bukkit.inventory.ItemStack refund = createTicket(type, 1);
-                    java.util.Map<Integer, org.bukkit.inventory.ItemStack> left = p.getInventory().addItem(refund);
-                    if (left != null && !left.isEmpty()) {
-                        for (org.bukkit.inventory.ItemStack remain : left.values()) {
-                            if (remain == null) continue;
-                            p.getWorld().dropItemNaturally(p.getLocation(), remain);
-                        }
-                    }
-                } catch (Throwable ignored) {}
-                return;
-            }
-        }
+                }
     }
                 } catch (Throwable ignored) {}
                 return;
@@ -686,10 +674,29 @@ if (!pending.containsKey(u)) return;
                 return;
             }
         }
-
-        switch (type){
+                    }
+                } catch (Throwable ignored) {}
+                return;
+            }
+        }
+switch (type){
             case IV_LOCK_RANDOM:
             case IV_LOCK_MAX: {
+                // 차단 대상(메타몽/오롱털/무성) 보호: 즉시 환불 후 종료
+                if (isDittoSlot(p, slot) || isGrimmsnarlSlot(p, slot) || isGenderlessSlot(p, slot)) {
+                    org.bukkit.inventory.ItemStack exact = voucherRefund.remove(p.getUniqueId());
+                    if (exact != null) {
+                        p.getInventory().addItem(exact);
+                    } else {
+                        try {
+                            org.bukkit.inventory.ItemStack refund = createTicket(type, 1);
+                            p.getInventory().addItem(refund);
+                        } catch (Throwable ignored) {}
+                    }
+                    p.sendMessage(color("&c[개체값고정권] 해당 슬롯은 사용 불가 대상입니다. (메타몽/오롱털/무성)"));
+                    return;
+                }
+
                 try {
                     net.md_5.bungee.api.chat.TextComponent base = new net.md_5.bungee.api.chat.TextComponent(color("&7[스탯 선택] "));
                     String[] labels = new String[]{"체력","공격","방어","특수공격","특수방어","스피드"};
