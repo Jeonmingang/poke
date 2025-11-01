@@ -564,7 +564,25 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
                 return;
             }
             IvPending ivp = ivLockWaiting.get(p.getUniqueId());
-            String key = null; String pretty = null;
+            
+            // Block again at stat selection in case target changed: ditto / grimmsnarl / genderless
+            if (ivp != null && (isDittoSlot(p, ivp.slot) || isGrimmsnarlSlot(p, ivp.slot) || isGenderlessSlot(p, ivp.slot))) {
+                ivLockWaiting.remove(p.getUniqueId());
+                // Prefer refunding the exact consumed voucher if kept
+                org.bukkit.inventory.ItemStack exact = voucherRefund.remove(p.getUniqueId());
+                if (exact != null) {
+                    p.getInventory().addItem(exact);
+                } else {
+                    try {
+                        org.bukkit.inventory.ItemStack refund = createTicket(ivp.type, 1);
+                        p.getInventory().addItem(refund);
+                    } catch (Throwable ignored) {}
+                }
+                p.sendMessage(color("&c[개체값고정권] 해당 슬롯은 사용 불가 대상입니다. (메타몽/오롱털/무성)"));
+                e.setCancelled(true);
+                return;
+            }
+    String key = null; String pretty = null;
             if (msg.equalsIgnoreCase("체력")){ key = "ivhp"; pretty="체력"; }
             else if (msg.equalsIgnoreCase("공격")){ key = "ivatk"; pretty="공격"; }
             else if (msg.equalsIgnoreCase("방어")){ key = "ivdef"; pretty="방어"; }
@@ -635,7 +653,26 @@ if (!pending.containsKey(u)) return;
                             if (remain == null) continue;
                             p.getWorld().dropItemNaturally(p.getLocation(), remain);
                         }
+                    
+        // Block for IV_LOCK_* (개체값고정권): Ditto / Grimmsnarl(오롱털) / Genderless
+        if (type==TicketType.IV_LOCK_RANDOM || type==TicketType.IV_LOCK_MAX) {
+            boolean blocked2 = isDittoSlot(p, slot) || isGrimmsnarlSlot(p, slot) || isGenderlessSlot(p, slot);
+            if (blocked2) {
+                p.sendMessage(color("&c[개체값고정권] 해당 슬롯은 사용 불가 대상입니다. (메타몽/오롱털/무성)"));
+                try {
+                    org.bukkit.inventory.ItemStack refund = createTicket(type, 1);
+                    java.util.Map<Integer, org.bukkit.inventory.ItemStack> left = p.getInventory().addItem(refund);
+                    if (left != null && !left.isEmpty()) {
+                        for (org.bukkit.inventory.ItemStack remain : left.values()) {
+                            if (remain == null) continue;
+                            p.getWorld().dropItemNaturally(p.getLocation(), remain);
+                        }
                     }
+                } catch (Throwable ignored) {}
+                return;
+            }
+        }
+    }
                 } catch (Throwable ignored) {}
                 return;
             }
