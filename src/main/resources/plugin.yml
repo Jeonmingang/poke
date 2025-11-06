@@ -1,7 +1,7 @@
 name: PixelTicket
 main: gg.pixelticket.PixelTicketPlugin
 version: 1.5.0
-api-version: 1.5.0
+api-version: 1.16
 commands:
   지급:
     description: 권 지급/설정/테스트
