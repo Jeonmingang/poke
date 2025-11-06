@@ -17,5 +17,6 @@ voucher:
     V4: "&6"
     V5: "&6"
     V6: "&6"
+    ULTRA_SELECT: "&b"
 
   legacy_message: "&c구버전 소모권은 비활성화되었습니다. 교환소에서 신버전으로 교환하세요."

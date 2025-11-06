@@ -44,6 +44,7 @@ public class PixelTicketPlugin extends JavaPlugin implements Listener, CommandEx
     public enum TicketType {
         LEG_RANDOM("전설랜덤권", ChatColor.LIGHT_PURPLE + "우클릭 즉시 전설 랜덤 지급", "LEG_RANDOM", false),
         LEG_SELECT("전설선택권", ChatColor.AQUA + "GUI에서 전설 선택 지급", "LEG_SELECT", false),
+        ULTRA_SELECT("울비선택권", ChatColor.AQUA + "GUI에서 울트라비스트 선택 지급", "ULTRA_SELECT", false),
         SHINY("이로치권", ChatColor.YELLOW + "채팅에 슬롯 입력 + 이로치 변경", "SHINY", true),
         BIGGEST("가장큼권", ChatColor.GREEN + "채팅에 슬롯 입력 + 크기 Ginormous", "BIGGEST", true),
         SMALLEST("가장작음권", ChatColor.GREEN + "채팅에 슬롯 입력 + 크기 Microscopic", "SMALLEST", true),
@@ -111,6 +112,9 @@ private File legendsFile;
     private File legendNamesFile;
     private FileConfiguration legendNamesCfg;
 
+    private File ultrabeastsFile;
+    private FileConfiguration ultrabeastsCfg;
+
     private final Map<UUID, PendingAction> pending = new HashMap<>();
     private final java.util.concurrent.ConcurrentHashMap<java.util.UUID, Long> lastUseMs = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long USE_COOLDOWN_MS = 350;
@@ -142,6 +146,10 @@ saveResource("legendaries.yml", false);
         legendsFile = new File(getDataFolder(), "legendaries.yml");
         legendsCfg = YamlConfiguration.loadConfiguration(legendsFile);
 
+        try { saveResource("ultrabeasts.yml", false); } catch (IllegalArgumentException ex) { }
+        ultrabeastsFile = new File(getDataFolder(), "ultrabeasts.yml");
+        ultrabeastsCfg = YamlConfiguration.loadConfiguration(ultrabeastsFile);
+
         // GUI 한글 매핑 로드(없으면 폴백 생성)
         try { saveResource("legend_names_ko.yml", false); } catch (IllegalArgumentException ex) { }
         legendNamesFile = new File(getDataFolder(), "legend_names_ko.yml");
@@ -159,7 +167,7 @@ saveResource("legendaries.yml", false);
         try { saveResource("natures_ko.yml", false); } catch (IllegalArgumentException ex) { }
 
 
-        getLogger().info("PixelTicket enabled (v1.0.4).");
+        getLogger().info("PixelTicket enabled (v1.5.0).");
     }
 
     @Override
@@ -385,6 +393,11 @@ public List<String> onTabComplete(CommandSender sender, Command cmd, String alia
             case LEG_SELECT:
                 consumeOne(p);
                 openLegendGui(p, 0);
+                break;
+
+            case ULTRA_SELECT:
+                consumeOne(p);
+                openUltraGui(p, 0);
                 break;
 
             case SHINY: case BIGGEST: case SMALLEST: case NEUTER:
@@ -905,16 +918,18 @@ if (!pending.containsKey(u)) return;
 
     @EventHandler
     public void onClick(InventoryClickEvent e){
-        if (!(e.getInventory().getHolder() instanceof LegendHolder)) return;
+        Object h = e.getInventory().getHolder();
+        boolean isLegend = h instanceof LegendHolder;
+        boolean isUltra = h instanceof UltraHolder;
+        if (!isLegend && !isUltra) return;
         // (cancel removed in non-event context)
         if (!(e.getWhoClicked() instanceof Player)) return;
         Player p = (Player) e.getWhoClicked();
         ItemStack clicked = e.getCurrentItem();
         if (clicked==null || clicked.getType()==Material.AIR) return;
-        LegendHolder holder = (LegendHolder) e.getInventory().getHolder();
         int slot = e.getRawSlot();
-        if (slot==45){ openLegendGui(p, Math.max(0, holder.page-1)); return; }
-        if (slot==53){ openLegendGui(p, holder.page+1); return; }
+        if (slot==45){ if (isLegend) openLegendGui(p, Math.max(0, ((LegendHolder)h).page-1)); else openUltraGui(p, Math.max(0, ((UltraHolder)h).page-1)); return; }
+        if (slot==53){ if (isLegend) openLegendGui(p, ((LegendHolder)h).page+1); else openUltraGui(p, ((UltraHolder)h).page+1); return; }
         if (slot==49){ p.closeInventory(); return; }
         if (slot>=0 && slot<45 && clicked.hasItemMeta()){
             String eng = null;
@@ -932,13 +947,45 @@ if (!pending.containsKey(u)) return;
                 eng = name;
             }
             runConsole("pokegive "+p.getName()+" "+eng);
-            p.sendMessage(color("&b[전설선택권] &f지급 완료: &b")+localize(eng));
+            p.sendMessage(color(isLegend ? "&b[전설선택권] &f지급 완료: &b" : "&d[울비선택권] &f지급 완료: &b")+localize(eng));
             p.closeInventory();
         }
     }
 
 
-    private 
+    
+    private void openUltraGui(Player p, int page){
+        java.util.List<String> ubs = ultrabeastsCfg.getStringList("ultrabeasts");
+        int perPage = 45;
+        int maxPage = Math.max(1, (ubs.size()+perPage-1)/perPage);
+        if (page<0) page=0; if (page>=maxPage) page = maxPage-1;
+        Inventory inv = Bukkit.createInventory(new UltraHolder(page), 54, color("&5울트라비스트 선택 ("+(page+1)+"/"+maxPage+")"));
+        int start = page*perPage;
+        for (int i=0;i<perPage && start+i<ubs.size();i++){
+            String name = ubs.get(start+i);
+            ItemStack it = new ItemStack(Material.END_CRYSTAL);
+            ItemMeta m = it.getItemMeta();
+            m.setDisplayName(color("&b") + localize(name));
+            m.setLore(java.util.Arrays.asList(
+                    color("&7클릭 시 지급: &f")+localize(name),
+                    color("&8영문: &7")+name,
+                    color("&8/pokegive ")+p.getName()+" "+name
+            ));
+            it.setItemMeta(m);
+            inv.setItem(i, it);
+        }
+        inv.setItem(45, navItem("&a이전 페이지", Material.ARROW));
+        inv.setItem(53, navItem("&a다음 페이지", Material.ARROW));
+        inv.setItem(49, navItem("&d닫기", Material.BARRIER));
+        p.openInventory(inv);
+    }
+
+    static class UltraHolder implements InventoryHolder {
+        final int page;
+        UltraHolder(int page){ this.page = page; }
+        @Override public Inventory getInventory(){ return null; }
+    }
+private 
     boolean isGrimmsnarlSlot(Player p, int slot) {
         // 오롱털(Grimmsnarl) 감지
         try {
